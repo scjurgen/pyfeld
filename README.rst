@@ -16,7 +16,17 @@ Installation
 ============
 the easist way is to use pip
 
+On Fedora
+---------
+sudo dnf install python-pip
 pip install pyfeld
+
+On Mac
+------
+brew install python
+sudo easy_install pip
+
+
 
 Usage
 =====
@@ -27,6 +37,12 @@ on mac:
 
 on linux:
 	you know the drill ;-)
+
+
+Known Unknowns
+==============
+
+A freshly installed version on a vergin machine will not check if nmap is installed and silently fails without telling yo why
 
 
 
