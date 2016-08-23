@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
 
-red="\\033[0;32m"
+
+if [ $# -ne 1 ]; 
+    then echo "please specify a room, available rooms are:"
+    pyfeld --discover rooms
+    exit -1
+fi
+
+cmdColor="\\033[0;32m"
 white="\\033[1;37m"
-mainroom=one-m-black
+mainroom=$1
 
 waitkey()  {
-    echo -e "${red}$1:${white}"
+    echo -e "${cmdColor}$1:${white} (key)"
     read
-    echo ""
+    clear 
 }
 
-waitkey "discover and show info about it "
+waitkey "discover and show info about your current Raumfeld system"
 pyfeld --discover info
-waitkey "discover and create an extensive json "
+waitkey "create an extensive json of the system for parsing"
 pyfeld --discover --json info
 
 waitkey "simple list of rooms" 
@@ -32,7 +39,7 @@ waitkey "browse tunein localradio"
 pyfeld --json browse "0/RadioTime/LocalRadio"
 
 waitkey "search an album"
-pyfeld search "0/My Music/Search/Albums" 'dc:title contains Jazz'
+pyfeld search "0/My Music/Search/Albums" 'dc:title contains you'
 
 
 pyfeld --discover

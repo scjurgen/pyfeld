@@ -108,7 +108,8 @@ class UpnpSoap:
             'USER-AGENT': 'uPNP/1.0'
         }
         try:
-            http = urllib3.PoolManager()
+            timeout = urllib3.util.timeout.Timeout(connect=2.0, read=7.0)
+            http = urllib3.PoolManager(timeout=timeout)
             r = http.request("GET", url, headers=headers)
             return r.status, r.data
         except Exception as e:

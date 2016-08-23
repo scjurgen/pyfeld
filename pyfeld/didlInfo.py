@@ -44,7 +44,10 @@ class DidlInfo:
         #print(xml_Root.toprettyxml())
         items = dict()
 
-        items['parentID'] = elem.attributes["parentID"].value
+        try:
+            items['parentID'] = elem.attributes["parentID"].value
+        except:
+            items['parentID'] = ""
         try:
             items['refID'] = elem.attributes["refID"].value
         except:
@@ -54,18 +57,18 @@ class DidlInfo:
         except:
             items['idPath'] = ""
         if fill_all:
-            items['ressampleFrequency'] = ""
-            items['resbitrate'] = ""
-            items['ressourceType'] = ""
-            items['ressourceName'] = ""
-            items['ressourceID'] = ""
+            items['resSampleFrequency'] = ""
+            items['resBitrate'] = ""
+            items['resSourceType'] = ""
+            items['resSourceName'] = ""
+            items['resSourceID'] = ""
         try:
             resElem = elem.getElementsByTagName('res')[0]
-            items['ressampleFrequency'] = resElem.attributes['sampleFrequency'].value
-            items['resbitrate'] = resElem.attributes['bitrate'].value
-            items['ressourceType'] = resElem.attributes['sourceType'].value
-            items['ressourceName'] = resElem.attributes['sourceName'].value
-            items['ressourceID'] = resElem.attributes['sourceID'].value
+            items['resSampleFrequency'] = resElem.attributes['sampleFrequency'].value
+            items['resBitrate'] = resElem.attributes['bitrate'].value
+            items['resSourceType'] = resElem.attributes['sourceType'].value
+            items['resSourceName'] = resElem.attributes['sourceName'].value
+            items['resSourceID'] = resElem.attributes['sourceID'].value
         except Exception as e:
             pass
         for item_tag, key in item_list.items():

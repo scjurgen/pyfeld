@@ -58,6 +58,12 @@ class UpnpCommand:
             print("host send error {0}".format(e))
         return None
 
+    def device_send_rendering(self, action, action_args):
+        return self.host_send(action,
+                              "/RenderingControl/ctrl",
+                              "RenderingControl",
+                              action_args)
+
     def host_send_rendering(self, action, action_args):
         return self.host_send(action,
                               "/RenderingService/Control",
@@ -77,36 +83,40 @@ class UpnpCommand:
                           action_args)
 
     def play(self):
-        xmlroot = self.host_send_transport("Play",  '<InstanceID>0</InstanceID><Speed>1</Speed>')
-        return xmlroot.toprettyxml()
+        xml_root = self.host_send_transport("Play",  '<InstanceID>0</InstanceID><Speed>1</Speed>')
+        return xml_root.toprettyxml()
 
     def stop(self):
-        xmlroot = self.host_send_transport("Stop",  '<InstanceID>0</InstanceID>')
-        return xmlroot.toprettyxml()
+        xml_root = self.host_send_transport("Stop",  '<InstanceID>0</InstanceID>')
+        return xml_root.toprettyxml()
+
+    def pause(self):
+        xml_root = self.host_send_transport("Pause",  '<InstanceID>0</InstanceID>')
+        return xml_root.toprettyxml()
 
     def seek(self, value):
-        xmlroot = self.host_send_transport("Seek",
+        xml_root = self.host_send_transport("Seek",
                                            '<InstanceID>0</InstanceID><Unit>ABS_TIME</Unit>'
                                            '<Target>' + value + '</Target>')
-        return xmlroot.toprettyxml()
+        return xml_root.toprettyxml()
 
     def previous(self):
-        xmlroot = self.host_send_transport("Previous", '<InstanceID>0</InstanceID>')
-        return xmlroot.toprettyxml()
+        xml_root = self.host_send_transport("Previous", '<InstanceID>0</InstanceID>')
+        return xml_root.toprettyxml()
 
     def next(self):
-        xmlroot = self.host_send_transport("Next", '<InstanceID>0</InstanceID>')
-        return xmlroot.toprettyxml()
+        xml_root = self.host_send_transport("Next", '<InstanceID>0</InstanceID>')
+        return xml_root.toprettyxml()
 
     def get_state_var(self):
-        xmlroot = self.host_send_rendering("GetStateVariables",
+        xml_root = self.host_send_rendering("GetStateVariables",
                                            '<InstanceID>0</InstanceID><'
                                            'StateVariableList>TransportStatus</StateVariableList>')
-        return xmlroot.toprettyxml()
+        return xml_root.toprettyxml()
 
     def get_position_info(self):
-        xmlroot = self.host_send_transport("GetPositionInfo",  '<InstanceID>0</InstanceID>')
-        return XmlHelper.xml_extract_dict(xmlroot, ['Track',
+        xml_root = self.host_send_transport("GetPositionInfo",  '<InstanceID>0</InstanceID>')
+        return XmlHelper.xml_extract_dict(xml_root, ['Track',
                                                     'TrackDuration',
                                                     'TrackMetaData',
                                                     'TrackURI',
@@ -116,12 +126,12 @@ class UpnpCommand:
                                                     'AbsCount'])
 
     def get_transport_setting(self):
-        xmlroot = self.host_send_transport("GetTransportSettings",  '<InstanceID>0</InstanceID>')
-        return XmlHelper.xml_extract_dict(xmlroot, ['PlayMode'])
+        xml_root = self.host_send_transport("GetTransportSettings",  '<InstanceID>0</InstanceID>')
+        return XmlHelper.xml_extract_dict(xml_root, ['PlayMode'])
 
     def get_media_info(self):
-        xmlroot = self.host_send_transport("GetMediaInfo",  '<InstanceID>0</InstanceID>')
-        return XmlHelper.xml_extract_dict(xmlroot, ['PlayMedium', 'NrTracks', 'CurrentURI', 'CurrentURIMetaData'])
+        xml_root = self.host_send_transport("GetMediaInfo",  '<InstanceID>0</InstanceID>')
+        return XmlHelper.xml_extract_dict(xml_root, ['PlayMedium', 'NrTracks', 'CurrentURI', 'CurrentURIMetaData'])
 
     def set_transport_uri(self, data):
         print("CurrentURI:\n" + data['CurrentURI'])
@@ -136,75 +146,144 @@ class UpnpCommand:
         send_data += "<CurrentURI><![CDATA[" + add_uri + "]]></CurrentURI>"
         send_data += "<CurrentURIMetaData>" + cgi.escape(data['CurrentURIMetaData']) + "</CurrentURIMetaData>"
         # + cgi.escape(data['CurrentURIMetaData']) +
-        print(data['CurrentURIMetaData'])
-        xmlroot = self.host_send_transport("SetAVTransportURI", send_data)
-        return XmlHelper.xml_extract_dict(xmlroot, ['SetAVTransportURI'])
+        print(send_data)
+        xml_root = self.host_send_transport("SetAVTransportURI", send_data)
+        return XmlHelper.xml_extract_dict(xml_root, ['SetAVTransportURI'])
 
     '''Rendering service'''
 
-    def get_volume(self, format = 'plain'):
-        xmlroot = self.host_send_rendering("GetVolume", '<InstanceID>0</InstanceID><Channel>Master</Channel>')
-        dict = XmlHelper.xml_extract_dict(xmlroot, ['CurrentVolume'])
+    def get_volume(self, format='plain'):
+        xml_root = self.host_send_rendering("GetVolume", '<InstanceID>0</InstanceID><Channel>Master</Channel>')
+        dict = XmlHelper.xml_extract_dict(xml_root, ['CurrentVolume'])
         if format == 'json':
             return '{ "CurrentVolume": "'+dict['CurrentVolume'] + '"}'
         else:
             return dict['CurrentVolume']
 
     def set_volume(self, value):
-        xmlroot = self.host_send_rendering("SetVolume",
+        xml_root = self.host_send_rendering("SetVolume",
                                            '<InstanceID>0</InstanceID><Channel>Master</Channel>' +
                                            '<DesiredVolume>' + str(value) + '</DesiredVolume>')
-        return xmlroot.toprettyxml()
+        return xml_root.toprettyxml()
 
-    def get_room_volume(self, uuid):
-        xmlroot = self.host_send_rendering("GetRoomVolume", '<InstanceID>0</InstanceID>'
+    def get_room_volume(self, uuid, format='plain'):
+        xml_root = self.host_send_rendering("GetRoomVolume", '<InstanceID>0</InstanceID>'
                                            '<Room>' + uuid + '</Room>')
-        return XmlHelper.xml_extract_dict(xmlroot, ['CurrentVolume'])
+        dict = XmlHelper.xml_extract_dict(xml_root, ['CurrentVolume'])
+        if format == 'json':
+            return '{ "CurrentVolume": "'+dict['CurrentVolume'] + '"}'
+        else:
+            return dict['CurrentVolume']
 
     def set_room_volume(self, uuid, value):
-        xmlroot = self.host_send_rendering("SetVolume",
+        xml_root = self.host_send_rendering("SetRoomVolume",
                                            '<InstanceID>0</InstanceID><Channel>Master</Channel>' +
                                            '<DesiredVolume>' + str(value) + '</DesiredVolume>' +
                                            '<Room>' + uuid + '</Room>')
         return None
 
+    def get_mute(self, format='plain'):
+        xml_root = self.host_send_rendering("GetMute", '<InstanceID>0</InstanceID><Channel>Master</Channel>')
+        dict = XmlHelper.xml_extract_dict(xml_root, ['CurrentMute'])
+        if format == 'json':
+            return '{ "CurrentMute": "'+dict['CurrentMute'] + '"}'
+        else:
+            return dict['CurrentMute']
+
+    def set_mute(self, value):
+        xml_root = self.host_send_rendering("SetMute",
+                                           '<InstanceID>0</InstanceID><Channel>Master</Channel>' +
+                                           '<DesiredMute>' + str(value) + '</DesiredMute>')
+        return xml_root.toprettyxml()
+
+    def get_room_mute(self, uuid, format='plain'):
+        xml_root = self.host_send_rendering("GetRoomMute", '<InstanceID>0</InstanceID>'
+                                           '<Room>' + uuid + '</Room>')
+        dict = XmlHelper.xml_extract_dict(xml_root, ['CurrentMute'])
+        if format == 'json':
+            return '{ "CurrentMute": "'+dict['CurrentMute'] + '"}'
+        else:
+            return dict['CurrentMute']
+
+    def set_room_mute(self, uuid, value):
+        xml_root = self.host_send_rendering("SetRoomMute",
+                                           '<InstanceID>0</InstanceID><Channel>Master</Channel>' +
+                                           '<DesiredMute>' + str(value) + '</DesiredMute>' +
+                                           '<Room>' + uuid + '</Room>')
+        return None
+
+    """
+    device stuff
+    """
+    def get_filter(self, output_format='plain'):
+        xml_root = self.device_send_rendering("GetFilter", '<InstanceID>0</InstanceID>'
+                                           )
+        dict_result = XmlHelper.xml_extract_dict(xml_root, ['LowDB', 'MidDB', 'HighDB'])
+        if output_format == 'json':
+            return '{ "LowDB": "'+dict_result['LowDB'] + '",  "MidDB": "'+dict_result['MidDB'] + '",  "HighDB": "'+dict_result['HighDB'] + '"}'
+        else:
+            return dict_result['LowDB'] + " " + dict_result['MidDB'] + " " + dict_result['HighDB']
+
+    def set_filter(self, valueLow, valueMid, valueHigh):
+        xml_root = self.device_send_rendering("SetFilter",
+                                           '<InstanceID>0</InstanceID><Channel>Master</Channel>' +
+                                           '<LowDB>' + str(valueLow) + '</LowDB>' +
+                                           '<MidDB>' + str(valueMid) + '</MidDB>' +
+                                           '<HighDB>' + str(valueHigh) + '</HighDB>'
+                                           )
+        return None
+
+    def get_balance(self, output_format='plain'):
+        xml_root = self.device_send_rendering("GetBalance", '<InstanceID>0</InstanceID>')
+        dict_result = XmlHelper.xml_extract_dict(xml_root, ['CurrentBalance'])
+        if output_format == 'json':
+            return '{ "CurrentBalance": "'+dict_result['CurrentBalance'] + '"}'
+        else:
+            return dict_result['CurrentBalance']
+
+    def set_balance(self, value):
+        xml_root = self.device_send_rendering("SetBalance",
+                                           '<InstanceID>0</InstanceID><Channel>Master</Channel>' +
+                                           '<DesiredBalance>' + str(value) + '</DesiredBalance>'
+                                           )
+        return None
+
     def get_browse_capabilites(self):
-        xmlroot = self.host_send_contentdirectory("GetSearchCapabilities", '')
-        return XmlHelper.xml_extract_dict(xmlroot, ['SearchCaps'])
+        xml_root = self.host_send_contentdirectory("GetSearchCapabilities", '')
+        return XmlHelper.xml_extract_dict(xml_root, ['SearchCaps'])
 
     def search(self, path, search_string, format="plain"):
-        browseData = "<ContainerID>" + path + "</ContainerID>" \
+        browse_data = "<ContainerID>" + path + "</ContainerID>" \
                      + "<SearchCriteria>" + search_string + "</SearchCriteria>" \
                      + "<Filter>*</Filter>" \
                      + "<StartingIndex>0</StartingIndex>" \
                      + "<RequestedCount>0</RequestedCount>" \
                      + "<SortCriteria>dc:title</SortCriteria>"
-        xmlroot = self.host_send_contentdirectory("Search", browseData)
-        result = XmlHelper.xml_extract_dict(xmlroot, ['Result', 'TotalMatches', 'NumberReturned'])
+        xml_root = self.host_send_contentdirectory("Search", browse_data)
+        result = XmlHelper.xml_extract_dict(xml_root, ['Result', 'TotalMatches', 'NumberReturned'])
         return self.scan_browse_result(result, 0, format)
 
-
     def browse(self, path):
-        browseData = "<ObjectID>" + path +"</ObjectID>" \
+        browse_data = "<ObjectID>" + path +"</ObjectID>" \
             + "<BrowseFlag>BrowseMetadata</BrowseFlag>" \
             + "<Filter>*</Filter>" \
             + "<StartingIndex>0</StartingIndex>" \
             + "<RequestedCount>0</RequestedCount>" \
             + "<SortCriteria>dc:title</SortCriteria>"
-        xmlroot = self.host_send_contentdirectory("Browse", browseData)
-        return XmlHelper.xml_extract_dict(xmlroot, ['Result', 'TotalMatches', 'NumberReturned'])
+        xml_root = self.host_send_contentdirectory("Browse", browse_data)
+        return XmlHelper.xml_extract_dict(xml_root, ['Result', 'TotalMatches', 'NumberReturned'])
 
     def browsechildren(self, path):
-        browseData = "<ObjectID>" + path + "</ObjectID>" \
+        browse_data = "<ObjectID>" + path + "</ObjectID>" \
             + "<BrowseFlag>BrowseDirectChildren</BrowseFlag>" \
             + "<Filter>*</Filter>" \
             + "<StartingIndex>0</StartingIndex>" \
             + "<RequestedCount>0</RequestedCount>" \
             + "<SortCriteria>dc:title</SortCriteria>"
-        xmlroot = self.host_send_contentdirectory("Browse", browseData)
-        if xmlroot is None:
+        xml_root = self.host_send_contentdirectory("Browse", browse_data)
+        if xml_root is None:
             return None
-        return XmlHelper.xml_extract_dict(xmlroot, ['Result', 'TotalMatches', 'NumberReturned'])
+        return XmlHelper.xml_extract_dict(xml_root, ['Result', 'TotalMatches', 'NumberReturned'])
 
     def get_node_element(self, node, tag):
         element = node.getElementsByTagName(tag)
@@ -219,9 +298,10 @@ class UpnpCommand:
             for container in container_list:
                 dict = DidlInfo.extract_from_node(container, True)
                 npath = dict["idPath"]
-                s += "C " + npath + " * " + dict["title"] + "\n"
-                if level > 0:
-                     self.browse_recursive_children(npath, level - 1, output_format)
+                adds = "C " + npath + " * " + dict["title"] + "\n"
+                s += adds
+                if int(level) > 0:
+                     self.browse_recursive_children(npath, int(level) - 1, output_format)
             item_list = xml_root.getElementsByTagName("item")
             for item in item_list:
                 dict = DidlInfo.extract_from_node(item, True)
@@ -246,8 +326,8 @@ class UpnpCommand:
             s += "]"
             return s
 
-    def browse_recursive_children(self, path, output_format='plain', level=3):
-        if level < 0:
+    def browse_recursive_children(self, path, level=3, output_format='plain'):
+        if int(level) < 0:
             return "error on level < 0"
         result = self.browsechildren(path)
         if result is None:
@@ -255,9 +335,11 @@ class UpnpCommand:
 
         if len(result) == 0:
             return ""
-        return self.scan_browse_result(result, level, output_format)
+        return self.scan_browse_result(result, int(level), output_format)
 
-
+"""
+#for testing
+"""
 def usage(argv):
     print("Usage: " + argv[0] + " ip:port [COMMAND|INFO] {args}")
     print("COMMAND: ")
@@ -292,6 +374,8 @@ def main(argv):
         result = uc.stop()
     elif operation == 'getv':
         result = uc.get_volume()
+    elif operation == 'getfilter':
+        result = uc.get_filter()
     elif operation == 'setv':
         result = uc.set_volume(sys.argv[3])
     elif operation == 'seek':
@@ -318,16 +402,16 @@ def main(argv):
         result = uc.get_browse_capabilites()
     elif operation == 'browse':
         result = uc.browse(argv[3])
-        xmlRoot = minidom.parseString(result['Result'])
-        print(xmlRoot.toprettyxml(indent="\t"))
+        xml_root = minidom.parseString(result['Result'])
+        print(xml_root.toprettyxml(indent="\t"))
     elif operation == 'browsechildren':
         if argv[3].endswith('/*'):
             result = uc.browse_recursive_children(argv[3][:-2])
             print(result)
         else:
             result = uc.browsechildren(argv[3])
-            xmlRoot = minidom.parseString(result['Result'])
-            print(xmlRoot.toprettyxml(indent="\t"))
+            xml_root = minidom.parseString(result['Result'])
+            print(xml_root.toprettyxml(indent="\t"))
         return
 
     else:

@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import urllib3
+
 from pyfeld.upnpService import UpnpService
 
 class Room:
@@ -11,6 +13,11 @@ class Room:
         self.mute = 0
         self.upnp_service = None
         self.location = location
+        base_url_parsed = urllib3.util.parse_url(location)
+        base_url = base_url_parsed.scheme + "://" + base_url_parsed.netloc
+        self.scpdurl = base_url+"/rendercontrol.xml"
+        self.controlURL = base_url+"/RenderingControl/ctrl"
+        self.eventSubURL = base_url+"/RenderingControl/evt"
 
     def set_volume(self, volume):
         self.volume = volume

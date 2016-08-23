@@ -178,6 +178,7 @@ class RaumfeldDeviceSettings:
             for item in rooms:
                 url += item+","
             url = url[:-1]
+            print(url)
             r = requests.get(url)
             return r
 
@@ -216,7 +217,6 @@ class RaumfeldDeviceSettings:
         except Exception as err:
             print("Exception create_zone_with_rooms: {0}".format(err))
             return None
-
 
     def get_zones(self):
         try:

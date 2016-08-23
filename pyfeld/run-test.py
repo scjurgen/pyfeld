@@ -42,7 +42,7 @@ def info():
         dir_browser.enter(i)
         print("Friendly path: " + dir_browser.get_friendly_path_name(" -> "))
         print("Friendly name of item: " + dir_browser.get_friendly_name(0))
-        print("Pass: " + dir_browser.get_path_for_index(0))
+        print("Path: " + dir_browser.get_path_for_index(0))
         print("Info on item:"+retrieve('--json browseinfo "'+dir_browser.get_path_for_index(0) + '"'))
 
 def rooms():
