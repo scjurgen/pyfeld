@@ -16,7 +16,7 @@ from pyfeld.getRaumfeld import RaumfeldDeviceSettings
 from pyfeld.zonesHandler import ZonesHandler
 from pyfeld.didlInfo import DidlInfo
 
-version = "0.5.1b0"
+version = "0.9.0"
 
 quick_access = dict()
 raumfeld_host_device = None
@@ -112,7 +112,7 @@ class RfCmd:
 
 
     @staticmethod
-    def get_device_ips(format):
+    def get_device_ips(verbose, format):
         global quick_access
         result = ""
         ip_list = []
@@ -121,13 +121,14 @@ class RfCmd:
             ip_list.append(ip_l.host)
         if quick_access['host'] not in ip_list:
             ip_list.append(quick_access['host'])
-        ip_list.sort()
+        #ip_list.sort()
+        ip_list.sort(key=lambda x: x.ip, reverse=True)
         if format == 'json':
             return json.dumps(ip_list) + "\n"
         if format == 'list':
             return ip_list
         for ip in ip_list:
-            result += ip+"\n"
+            result += ip + "\n"
         return result
 
 
@@ -156,6 +157,7 @@ class RfCmd:
                         room_name += ":"+room['location']
                     room_list.append(room_name)
         room_list.sort()
+
         if format == 'json':
             result += '['
             cnt = 0
@@ -643,10 +645,12 @@ def run_main():
     elif operation == 'rooms':
         result = RfCmd.get_rooms(verbose, format)
         result = result[:-1]
+    elif operation == 'urls':
+        result = ""
     elif operation == 'host':
         result = raumfeld_host_device.server_ip
     elif operation == 'deviceips':
-        result = RfCmd.get_device_ips(format)
+        result = RfCmd.get_device_ips(verbose, format)
         result = result[:-1]
     elif operation == 'unassignedrooms':
         result = RfCmd.get_unassigned_rooms(verbose, format)

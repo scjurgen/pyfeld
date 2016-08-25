@@ -5,16 +5,17 @@ import urllib3
 from pyfeld.upnpService import UpnpService
 
 class Room:
-    def __init__(self, udn, renderer_udn, name, location):
+    def __init__(self, udn, renderer_list, name, location):
         self.name = name
         self.udn = udn
-        self.renderer_udn = renderer_udn
+        self.renderer_list = renderer_list
         self.volume = 0
         self.mute = 0
         self.upnp_service = None
         self.location = location
         base_url_parsed = urllib3.util.parse_url(location)
         base_url = base_url_parsed.scheme + "://" + base_url_parsed.netloc
+        #we need to parse these out of the xml to make it robust
         self.scpdurl = base_url+"/rendercontrol.xml"
         self.controlURL = base_url+"/RenderingControl/ctrl"
         self.eventSubURL = base_url+"/RenderingControl/evt"
@@ -34,8 +35,8 @@ class Room:
     def get_udn(self):
         return self.udn
 
-    def get_renderer_udn(self):
-        return self.renderer_udn
+    def get_renderer_list(self):
+        return self.renderer_list
 
     def get_volume(self):
         return self.volume

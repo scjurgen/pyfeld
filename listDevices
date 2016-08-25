@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<devices>
+ <device udn='uuid:00fec1b8-10aa-428d-b12a-5c64f1b599a5' type='urn:schemas-raumfeld-com:device:RaumfeldDevice:1' location='http://172.31.0.16:40614/00fec1b8-10aa-428d-b12a-5c64f1b599a5.xml'>Raumfeld Device</device>
+ <device udn='uuid:09c4f024-2e56-480f-87ce-f963684c708a' type='urn:schemas-raumfeld-com:device:RaumfeldDevice:1' location='http://172.31.0.136:36506/09c4f024-2e56-480f-87ce-f963684c708a.xml'>Raumfeld Device</device>
+ <device udn='uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a' type='urn:schemas-upnp-org:device:MediaRenderer:1' location='http://172.31.0.16:36313/1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a.xml'>Speaker one-s-left</device>
+ <device udn='uuid:298de423-48ff-4404-bc86-57d7b3d8ac13' type='urn:schemas-upnp-org:device:MediaServer:1' location='http://172.31.0.21:51447/298de423-48ff-4404-bc86-57d7b3d8ac13.xml'>Raumfeld MediaServer</device>
+ <device udn='uuid:2bba837e-9414-4f5f-a54c-6d06789b9cf1' type='urn:schemas-upnp-org:device:MediaRenderer:1' location='http://172.31.0.13:51523/2bba837e-9414-4f5f-a54c-6d06789b9cf1.xml'>Speaker one-m-black</device>
+ <device udn='uuid:3dbe6303-82f5-4af5-9c26-4d1293d467d4' type='urn:schemas-upnp-org:device:MediaRenderer:1' location='http://172.31.0.147:50374/3dbe6303-82f5-4af5-9c26-4d1293d467d4.xml'>Speaker cubes</device>
+ <device udn='uuid:42686543-c1ce-4264-81dd-acba5179d0ec' type='urn:schemas-upnp-org:device:MediaRenderer:1' location='http://172.31.0.136:42440/42686543-c1ce-4264-81dd-acba5179d0ec.xml'>Connector connector-top</device>
+ <device udn='uuid:439ad282-a4a4-46f6-b4de-4bbbc3facdb3' type='urn:schemas-upnp-org:device:MediaRenderer:1' location='http://172.31.0.11:59168/439ad282-a4a4-46f6-b4de-4bbbc3facdb3.xml'>Speaker one-s-left #2</device>
+ <device udn='uuid:56689bbc-6d74-4e97-a121-c6642e59fd74' type='urn:schemas-raumfeld-com:device:RaumfeldDevice:1' location='http://172.31.0.21:50632/56689bbc-6d74-4e97-a121-c6642e59fd74.xml'>Raumfeld Device</device>
+ <device udn='uuid:61124880-a700-4fb6-9aed-b6cbf15b276e' type='urn:schemas-raumfeld-com:device:RaumfeldDevice:1' location='http://172.31.0.13:46657/61124880-a700-4fb6-9aed-b6cbf15b276e.xml'>Raumfeld Device</device>
+ <device udn='uuid:8BBD4D2F-9514-4E47-9826-9071337EE356' type='urn:schemas-upnp-org:device:MediaRenderer:1' location='http://172.31.0.21:49050/8BBD4D2F-9514-4E47-9826-9071337EE356.xml'>one-m-black</device>
+ <device udn='uuid:9155ef08-140c-4d0a-9d22-ddadb3ffe5c7' type='urn:schemas-raumfeld-com:device:ConfigDevice:1' location='http://172.31.0.21:60662/9155ef08-140c-4d0a-9d22-ddadb3ffe5c7.xml'>Raumfeld ConfigDevice</device>
+ <device udn='uuid:997cb043-8659-449e-a206-dcd5d3bcc0a1' type='urn:schemas-upnp-org:device:MediaRenderer:1' location='http://172.31.0.21:39284/997cb043-8659-449e-a206-dcd5d3bcc0a1.xml'>Connector con-center</device>
+ <device udn='uuid:f7a16cf6-f98d-4da5-bb21-cec6e794ab21' type='urn:schemas-raumfeld-com:device:RaumfeldDevice:1' location='http://172.31.0.11:48254/f7a16cf6-f98d-4da5-bb21-cec6e794ab21.xml'>Raumfeld Device</device>
+ <device udn='uuid:f8bfaaaf-b493-4d57-9e64-f290b5623269' type='urn:schemas-raumfeld-com:device:RaumfeldDevice:1' location='http://172.31.0.147:52402/f8bfaaaf-b493-4d57-9e64-f290b5623269.xml'>Raumfeld Device</device>
+</devices>
