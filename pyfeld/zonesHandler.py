@@ -9,6 +9,8 @@ from pprint import pprint
 from xml.dom import minidom
 import hashlib
 
+from pyfeld.renderer import Renderer
+
 from pyfeld.discoverByHttp import DiscoverByHttp
 from pyfeld.errorPrint import err_print
 from pyfeld.getRaumfeld import RaumfeldDeviceSettings, HostDevice
@@ -200,12 +202,15 @@ class ZonesHandler:
             room_udn = room.getAttribute('udn')
             #print(room_udn)
             element = room.getElementsByTagName('renderer')
+            renderers = []
             for el in element:
                 room_renderer_udn = el.getAttribute('udn')
                 location = self.get_network_location_by_udn(room_renderer_udn, xmlListDevices)
-                room_obj = Room(room_udn, room_renderer_udn, room.attributes["name"].value, location)
-                room_obj.set_upnp_service(location)
-                zone_obj.add_room(room_obj)
+                renderer = Renderer(room_renderer_udn, el.getAttribute('name'), location)
+                renderers.append(renderer)
+            room_obj = Room(room_udn, renderers, room.attributes["name"].value, location)
+            room_obj.set_upnp_service(location)
+            zone_obj.add_room(room_obj)
         zone_obj.set_soap_host(self.get_network_location_by_udn(zone_udn, xmlListDevices))
         return zone_obj
 
@@ -527,12 +532,13 @@ class ZonesHandler:
                     result_list = dict({'type': 'zone', 'obj': zone})
                     return result_list
                 for room in zone.rooms:
-                    if room.get_renderer_udn() == udn:
-                        result_list = dict({'type': 'room_renderer', 'obj': room})
-                        return result_list
-                    if room.get_udn() == udn:
-                        result_list = dict({'type': 'room', 'obj': room})
-                        return result_list
+                    for renderer in room.get_renderer_list():
+                        if renderer.get_udn() == udn:
+                            result_list = dict({'type': 'room_renderer', 'obj': room})
+                            return result_list
+                        if room.get_udn() == udn:
+                            result_list = dict({'type': 'room', 'obj': room})
+                            return result_list
             except:
                 pass
         return None
@@ -626,12 +632,19 @@ class ZonesHandler:
                     room_config['name'] = room.get_name()
                     room_config['location'] = room.get_location()
                     room_config['udn'] = room.get_udn()
-                    room_config['renderer_udn'] = room.get_renderer_udn()
+                    room_renderer = []
+                    for renderer in room.get_renderer_list():
+                        renderer_dict = dict()
+                        renderer_dict['name'] = renderer.get_name()
+                        renderer_dict['location'] = renderer.get_location()
+                        renderer_dict['udn'] = renderer.get_udn()
+                        room_renderer.append(renderer_dict)
+                    room_config['room_renderers'] = room_renderer
                     room_list.append(room_config)
                 zone_dict['rooms'] = room_list
                 zone_dict['udn'] = str(zone.udn)
             except Exception as e:
-                pass
+                print("Error creating quickaccess object: {0}".format(e))
             zone_list.append(zone_dict)
         values['zones'] = zone_list
 

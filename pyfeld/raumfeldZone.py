@@ -43,9 +43,10 @@ class RaumfeldZone:
 
     def get_control_hash(self):
         room_udns = []
-        for r in self.rooms:
-            room_udns.append(r.get_udn())
-            room_udns.append(r.get_renderer_udn())
+        for room in self.rooms:
+            room_udns.append(room.get_udn())
+            for renderer in room.get_renderer_list():
+                room_udns.append(renderer.get_udn())
         room_udns.sort()
         combined = str(self.soap_host)
         for t in room_udns:

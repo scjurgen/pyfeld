@@ -120,15 +120,17 @@ def run_macro(argv):
     command = argv[1]
     if command == 'version':
         show_versions()
-    if command == 'update':
+    elif command == 'update':
         force_update(argv[2])
-    if command == 'ssh':
+    elif command == 'ssh':
         ssh_command(argv[2])
-    if command == 'scp':
+    elif command == 'scp':
         scp_file(argv[2], argv[3])
-    if command == 'clean-hostkeys':
+    elif command == 'clean-hostkeys':
         clean_host_keys()
-
+    else:
+        print("Unknown command {0}".command)
+        usage(argv)
 def run_main():
     run_macro(sys.argv)
 

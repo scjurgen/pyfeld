@@ -22,9 +22,6 @@ class Renderer:
     def get_udn(self):
         return self.udn
 
-    def get_renderer_udn(self):
-        return self.renderer_udn
-
     def set_upnp_service(self, location):
         self.upnp_service = UpnpService()
         if location is not None:

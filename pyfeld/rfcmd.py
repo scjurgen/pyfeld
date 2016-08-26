@@ -21,6 +21,15 @@ version = "0.9.0"
 quick_access = dict()
 raumfeld_host_device = None
 
+class InfoList:
+    def __init__(self, sortItem, others):
+        self.sortItem = sortItem
+        self.others = others
+
+    def get_list(self):
+        return self.sortItem + self.others
+
+
 class RfCmd:
 
     @staticmethod
@@ -118,17 +127,23 @@ class RfCmd:
         ip_list = []
         for device in quick_access['devices']:
             ip_l = urllib3.util.parse_url(device['location'])
-            ip_list.append(ip_l.host)
-        if quick_access['host'] not in ip_list:
-            ip_list.append(quick_access['host'])
-        #ip_list.sort()
-        ip_list.sort(key=lambda x: x.ip, reverse=True)
+            ip_list.append(InfoList(ip_l.host, device['name']))
+        ip_list.append(InfoList(quick_access['host'], "<host>"))
+        ip_list.sort(key=lambda x: x.sortItem, reverse=True)
         if format == 'json':
             return json.dumps(ip_list) + "\n"
-        if format == 'list':
-            return ip_list
+        f_list = []
         for ip in ip_list:
-            result += ip + "\n"
+            if ip.sortItem not in f_list:
+                f_list.append(ip.sortItem)
+        if format == 'list':
+            return f_list
+        if verbose:
+            for item in ip_list:
+                result += item.sortItem + "\t" + item.others + "\n"
+        else:
+            for ip in f_list:
+                result += ip +"\n"
         return result
 
 
@@ -243,27 +258,35 @@ class RfCmd:
             result = ""
             for media_server in quick_access['mediaserver']:
                 if verbose >= 1:
-                    result += ("Mediaserver #{0} : {1}\n".format(i, media_server['udn']))
+                    result += "Mediaserver #{0} : {1}\n".format(i, media_server['udn'])
                 else:
-                    result += ("Mediaserver #{0}\n".format(i))
+                    result += "Mediaserver #{0}\n".format(i)
                 i += 1
             i = 0
             for zone in quick_access['zones']:
                 if verbose == 2:
-                    result += ("Zone #{0} : {1} : {2} -> {3}\n".format(i, zone['name'], str(zone['udn']), zone['host']))
+                    result += "Zone #{0} : {1} : {2} -> {3}\n".format(i, zone['name'], str(zone['udn']), zone['host'])
                 elif verbose == 1:
-                    result += ("Zone #{0} : {1} : {2}\n".format(i, zone['name'], str(zone['udn'])))
+                    result += "Zone #{0} : {1} : {2}\n".format(i, zone['name'], str(zone['udn']))
                 else:
-                    result += ("Zone #{0} : {1}\n".format(i, zone['name']))
+                    result += "Zone #{0} : {1}\n".format(i, zone['name'])
                 if zone['rooms'] is not None:
                     for room in zone['rooms']:
                         if verbose == 2:
-                            result += ("\tRoom '{0}' : {1} -> {2}\n".format(room['name'], room['udn'], room['location']))
+                            result += "\tRoom '{0}' : {1} -> {2}\n".format(room['name'], room['udn'], room['location'])
                         elif verbose == 1:
-                                result += ("\tRoom '{0}' : {1}\n".format(room['name'], room['udn']))
+                                result += "\tRoom '{0}' : {1}\n".format(room['name'], room['udn'])
                         else:
-                            result += ("\tRoom '{0}'\n".format(room['name']))
-                i += 1
+                            result += "\tRoom '{0}'\n".format(room['name'])
+                        for renderer in room['room_renderers']:
+                            if verbose == 2:
+                                result += "\t\tRenderer '{0}' : {1} -> {2}\n".format(renderer['name'], renderer['udn'],
+                                                                                     renderer['location'])
+                            elif verbose == 1:
+                                result += "\t\tRenderer '{0}' : {1}\n".format(renderer['name'], renderer['udn'])
+                            else:
+                                result += "\t\tRenderer '{0}'\n".format(renderer['name'])   #.
+                    i += 1
         return result
 
 
@@ -340,7 +363,6 @@ class RfCmd:
             local_ip = RaumfeldDeviceSettings.get_local_ip_address()
             zones_handler.search_nmap_range(local_ip + "/24")
             zones_handler.publish_state()
-
         RfCmd.get_raumfeld_infrastructure()
 
 
