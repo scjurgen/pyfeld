@@ -55,6 +55,17 @@ class RfCmd:
     '''
 
     @staticmethod
+    def get_renderer_udn(renderer_name):
+        global quick_access
+        for zone in quick_access['zones']:
+            if zone['rooms'] is not None:
+                for room in zone['rooms']:
+                    for renderer in room.get_renderer_list():
+                        if renderer['name'] == renderer_name:
+                            return renderer['udn']
+        return None
+
+    @staticmethod
     def get_room_udn(room_name):
         global quick_access
         for zone in quick_access['zones']:
@@ -119,6 +130,38 @@ class RfCmd:
                         result += room['name'] + '\n'
         return result
 
+    @staticmethod
+    def get_pure_ip(url):
+        loc = urllib3.util.parse_url(url)
+        return loc.hostname
+
+    @staticmethod
+    def map_ip_to_friendly_name(ip):
+        global quick_access
+        for zone in quick_access['zones']:
+            if zone['rooms'] is not None:
+                for room in zone['rooms']:
+                    if RfCmd.get_pure_ip(room['location']) == ip:
+                        return room['name']
+                    for renderer in room['room_renderers']:
+                        if RfCmd.get_pure_ip(renderer['location']) == ip:
+                            return renderer['name']
+        return None
+
+    @staticmethod
+    def map_udn_to_friendly_name(udn):
+        global quick_access
+        for zone in quick_access['zones']:
+            if zone['rooms'] is not None:
+                if zone['udn'] == udn:
+                    return zone['name']
+                for room in zone['rooms']:
+                    if room['udn'] == udn:
+                        return room['name']
+                    for renderer in room['room_renderers']:
+                        if renderer['udn'] == udn:
+                            return renderer['name']
+        return None
 
     @staticmethod
     def get_device_ips(verbose, format):
@@ -127,7 +170,7 @@ class RfCmd:
         ip_list = []
         for device in quick_access['devices']:
             ip_l = urllib3.util.parse_url(device['location'])
-            ip_list.append(InfoList(ip_l.host, device['name']))
+            ip_list.append(InfoList(ip_l.host, RfCmd.map_ip_to_friendly_name(ip_l.host)))
         ip_list.append(InfoList(quick_access['host'], "<host>"))
         ip_list.sort(key=lambda x: x.sortItem, reverse=True)
         if format == 'json':
@@ -143,7 +186,7 @@ class RfCmd:
                 result += item.sortItem + "\t" + item.others + "\n"
         else:
             for ip in f_list:
-                result += ip +"\n"
+                result += ip + "\n"
         return result
 
 
@@ -629,6 +672,7 @@ def run_main():
             rooms.add(str(udn))
             argpos += 1
         raumfeld_host_device.create_zone_with_rooms(rooms)
+        sleep(2)
         RfCmd.discover()
     elif operation == 'addtozone':
         zone_udn = quick_access['zones'][zoneIndex]['udn']
@@ -643,6 +687,7 @@ def run_main():
             rooms.add(str(udn))
             argpos += 1
         raumfeld_host_device.add_rooms_to_zone(zone_udn, rooms)
+        sleep(2)
         RfCmd.discover()
     elif operation == 'drop':
         result = "drop rooms from zone:\n"
@@ -653,7 +698,8 @@ def run_main():
                 udn = RfCmd.get_room_udn(argv[argpos])
             result += str(raumfeld_host_device.drop_room(str(udn)))
             argpos += 1
-            RfCmd.discover()
+        sleep(2)
+        RfCmd.discover()
     elif operation == 'browse':
         if argv[argpos].endswith('/*'):
             result = uc_media.browse_recursive_children(argv[argpos][:-2], 3, format)
