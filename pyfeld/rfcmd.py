@@ -214,6 +214,10 @@ class RfCmd:
         global quick_access
         for zone in quick_access['zones']:
             for room in zone['rooms']:
+                for renderer in room['room_renderers']:
+                    if renderer['udn'] == udn:
+                        loc = urllib3.util.parse_url(renderer['location'])
+                        return loc.netloc
                 if room is not None:
                     if room['udn'] == udn:
                         loc = urllib3.util.parse_url(room['location'])
@@ -487,7 +491,8 @@ def usage(argv):
     print("  unassignedrooms           Show list of unassigned rooms")
     print("  zoneinfo                  Show info on zone")
     print("  zones                     Show list of zones, unassigned room is skipped")
-    print("  info                      Show list of zones and rooms")
+    print("  info                      Show list of zones, rooms and renderers")
+    print("  playinfo                  Show playing info of renderers")
     print("#MACRO OPERATIONS")
     print("  wait condition            wait for condition (expression) [volume, position, duration, title, artist] i.e. volume < 5 or position==120 ")
     print("  fade time vols vole       fade volume from vols to vole in time seconds ")
@@ -564,6 +569,7 @@ def run_main():
             format = "json"
         elif option == 'discover' or option == '-d':
             RfCmd.discover()
+            uc = UpnpCommand(quick_access['zones'][zoneIndex]['host'])
             if argpos == len(argv):
                 print("done")
                 sys.exit(0)
@@ -572,6 +578,7 @@ def run_main():
             for index, zone in enumerate(quick_access['zones']):
                 if argv[argpos] == zone['udn']:
                     zoneIndex = index
+                    uc = UpnpCommand(quick_access['zones'][zoneIndex]['host'])
                     found = True
             if not found:
                 print("Zoneudn {0} not found".format(argv[argpos]))
@@ -579,6 +586,7 @@ def run_main():
             argpos += 1
         elif option == 'zone' or option == '-z':
             zoneIndex = int(argv[argpos])
+            uc = UpnpCommand(quick_access['zones'][zoneIndex]['host'])
             argpos += 1
         elif option == 'zonewithroom' or option == '-r':
             roomName = argv[argpos]
@@ -592,6 +600,7 @@ def run_main():
             if RfCmd.is_unassigned_room(roomName):
                 print('error: room is unassigned: ' + roomName)
                 exit(-1)
+            uc = UpnpCommand(quick_access['zones'][zoneIndex]['host'])
             argpos += 1
         elif option == 'mediaserver' or option == '-m':
             mediaIndex = int(argv[argpos])
@@ -601,7 +610,6 @@ def run_main():
             usage(argv)
             sys.exit(2)
 
-    uc = UpnpCommand(quick_access['zones'][zoneIndex]['host'])
     uc_media = UpnpCommand(quick_access['mediaserver'][mediaIndex]['location'])
     operation = argv[argpos]
     argpos += 1
@@ -636,9 +644,24 @@ def run_main():
             udn = RfCmd.get_room_udn(argv[argpos])
         result = RfCmd.get_room_info(uc, udn)
     elif operation == 'volume' or operation == 'setvolume':
-        result = uc.set_volume(argv[argpos])
+        if device_format == 'udn':
+            for renderer in quick_access['renderer']:
+                if renderer['udn'] == argv[argpos]:
+                    host = urllib3.util.parse_url(renderer['location'])
+                    uc = UpnpCommand(host.netloc)
+            argpos += 1
+            result = uc.set_volume_by_udn(argv[argpos])
+        else:
+            result = uc.set_volume(argv[argpos])
     elif operation == 'getvolume':
-        result = uc.get_volume(format)
+        if device_format == 'udn':
+            for renderer in quick_access['renderer']:
+                if renderer['udn'] == argv[argpos]:
+                    host = urllib3.util.parse_url(renderer['location'])
+                    uc = UpnpCommand(host.netloc)
+            result = uc.get_volume_by_udn(format)
+        else:
+            result = uc.get_volume(format)
     elif operation == 'roomgetvolume':
         if device_format == 'udn':
             udn = argv[argpos]
@@ -804,6 +827,9 @@ def run_main():
         result = result[:-1]
     elif operation == 'info':
         result = RfCmd.get_info(verbose, format)
+        result = result[:-1]
+    elif operation == 'playinfo':
+        result = RfCmd.get_play_info(verbose, format)
         result = result[:-1]
     elif operation == 'ssh':
         combined_args = " ".join(argv[argpos:])

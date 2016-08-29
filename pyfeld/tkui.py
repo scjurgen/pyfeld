@@ -163,7 +163,7 @@ class RaumfeldRoomInfo(Frame):
                     "-",
                     zone['udn'],  #pack additional info to it, this is not visualized
                     room['udn'],
-                    room['renderer_udn'],
+                    room['udn'],
                 ]
                 i += 1
                 browse_list.append(item)

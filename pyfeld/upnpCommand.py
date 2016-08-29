@@ -166,6 +166,20 @@ class UpnpCommand:
                                            '<DesiredVolume>' + str(value) + '</DesiredVolume>')
         return xml_root.toprettyxml()
 
+    def get_volume_by_udn(self, format='plain'):
+        xml_root = self.device_send_rendering("GetVolume", '<InstanceID>0</InstanceID><Channel>Master</Channel>')
+        dict = XmlHelper.xml_extract_dict(xml_root, ['CurrentVolume'])
+        if format == 'json':
+            return '{ "CurrentVolume": "'+dict['CurrentVolume'] + '"}'
+        else:
+            return dict['CurrentVolume']
+
+    def set_volume_by_udn(self, value):
+        xml_root = self.device_send_rendering("SetVolume",
+                                           '<InstanceID>0</InstanceID><Channel>Master</Channel>' +
+                                           '<DesiredVolume>' + str(value) + '</DesiredVolume>')
+        return xml_root.toprettyxml()
+
     def get_room_volume(self, uuid, format='plain'):
         xml_root = self.host_send_rendering("GetRoomVolume", '<InstanceID>0</InstanceID>'
                                            '<Room>' + uuid + '</Room>')
