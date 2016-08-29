@@ -17,7 +17,7 @@ else:
 
 setup(
     name='pyfeld',
-    version='0.9.0',
+    version='0.9.2',
     author='Jürgen Schwietering',
     author_email='scjurgen@yahoo.com',
     description='Raumfeld controlled by python scripts',
@@ -38,7 +38,7 @@ setup(
     ],
     #py_modules=['pyfeld','DirBrowse'],
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['requests', 'urllib3'],
+    install_requires=['requests', 'texttable', 'urllib3'],
     #packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     entry_points={
         'console_scripts': [

@@ -6,6 +6,10 @@ import subprocess
 import sys
 import urllib
 import urllib3
+try:
+    from texttable import Texttable
+except:
+    pass
 
 from requests.utils import quote
 
@@ -17,7 +21,7 @@ from pyfeld.getRaumfeld import RaumfeldDeviceSettings
 from pyfeld.zonesHandler import ZonesHandler
 from pyfeld.didlInfo import DidlInfo
 
-version = "0.9.0"
+version = "0.9.2"
 
 quick_access = dict()
 raumfeld_host_device = None
@@ -355,6 +359,53 @@ class RfCmd:
                     i += 1
         return result
 
+
+
+    @staticmethod
+    def get_play_info(verbose, format):
+        global quick_access
+        result = ""
+        maxsize = 10
+        for zone in quick_access['zones']:
+            if zone['rooms'] is not None:
+                if len(zone['name']) > maxsize:
+                    maxsize = len(zone['name'])
+        maxsize += 2
+        result_list = list()
+        result_list.append(["Zone","Vol","Track","Length","Pos","Src","BR","Src","Track title","Track Info"])
+        for zone in quick_access['zones']:
+            if zone['rooms'] is not None:
+                single_result = list()
+                uc = UpnpCommand(zone['host'])
+                single_result.append(zone['name'])
+                single_result.append(uc.get_volume())
+                results = uc.get_position_info()
+                single_result.append(str(results['Track']))
+                single_result.append(str(results['TrackDuration']))
+                single_result.append(str(results['AbsTime']))
+                if 'DIDL-Lite' in results['TrackMetaData']:
+                    didlinfo = DidlInfo(results['TrackMetaData'], True).get_items()
+                    single_result.append(didlinfo['resSourceType'])
+                    single_result.append(didlinfo['resBitrate'])
+                    single_result.append(didlinfo['resSourceName'])
+                    single_result.append(didlinfo['title'])
+                else:
+                    single_result.append("-")
+                    single_result.append("-")
+                    single_result.append("-")
+                    single_result.append("-")
+
+                media_info = uc.get_media_info()
+                if 'CurrentURIMetaData' in media_info:
+                    didlinfo = DidlInfo(media_info['CurrentURIMetaData']).get_items()
+                    media = didlinfo['title']
+                    single_result.append(media)
+                else:
+                    single_result.append("-")
+                result_list.append(single_result)
+        t = Texttable(250)
+        t.add_rows(result_list)
+        return t.draw()
 
     @staticmethod
     def get_zone_info(format):

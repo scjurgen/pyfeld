@@ -9,7 +9,7 @@ class XmlHelper:
                 element = xml.getElementsByTagName(k)
                 result_dict[k] = element[0].firstChild.nodeValue
             except Exception as e:
-                pass
+                result_dict[k] = ""
         return result_dict
 
     def xml_extract_dict_by_val(xml, extract_keys):
