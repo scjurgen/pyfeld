@@ -17,7 +17,7 @@ else:
 
 setup(
     name='pyfeld',
-    version='0.5.1b0',
+    version='0.9.0',
     author='Jürgen Schwietering',
     author_email='scjurgen@yahoo.com',
     description='Raumfeld controlled by python scripts',

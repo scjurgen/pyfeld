@@ -207,7 +207,9 @@ class ZonesHandler:
                 room_renderer_udn = el.getAttribute('udn')
                 location = self.get_network_location_by_udn(room_renderer_udn, xmlListDevices)
                 renderer = Renderer(room_renderer_udn, el.getAttribute('name'), location)
+                ZonesHandler.renderers.append(renderer)
                 renderers.append(renderer)
+
             room_obj = Room(room_udn, renderers, room.attributes["name"].value, location)
             room_obj.set_upnp_service(location)
             zone_obj.add_room(room_obj)
@@ -218,6 +220,7 @@ class ZonesHandler:
         ZonesHandler.media_servers = set()
         ZonesHandler.config_device = set()
         ZonesHandler.raumfeld_device = set()
+        ZonesHandler.media_renderers = set()
         devices = xmlListDevices.getElementsByTagName("device")
         for device in devices:
             if device.getAttribute('type') == "urn:schemas-upnp-org:device:MediaServer:1":
@@ -297,7 +300,7 @@ class ZonesHandler:
                 xml_root_devices = minidom.parseString(xml_data_devices)
                 self.parse_devices_in_zone_raumfeld(xml_root_devices)
                 zones = xml_root.getElementsByTagName("zone")
-
+                ZonesHandler.renderers = list()
                 for zone in zones:
                     try:
                         udn_id = zone.attributes["udn"].value
@@ -592,6 +595,18 @@ class ZonesHandler:
         media_server_list = list()
 
         device_list = list()
+        for renderer in self.renderers:
+            device_dict = dict()
+            try:
+                device_dict['udn'] = str(renderer.udn)
+                device_dict['location'] = str(renderer.location)
+                device_dict['name'] = str(renderer.name)
+            except Exception as e:
+                pass
+            device_list.append(device_dict)
+        values['renderer'] = device_list
+
+        device_list = list()
         for renderer in self.media_renderers:
             device_dict = dict()
             try:
@@ -602,7 +617,7 @@ class ZonesHandler:
             except Exception as e:
                 pass
             device_list.append(device_dict)
-        values['renderer'] = device_list
+        values['mediarenderer'] = device_list
 
         for server in self.media_servers:
             mserver_dict = dict()

@@ -14,6 +14,8 @@ sshcmd = "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"
 scpcmd = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
 
 
+#class RFMacroCommand:
+
 def retrieve(cmd):
     try:
         process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -30,7 +32,7 @@ def retrieve(cmd):
 
 def get_ips():
     RfCmd.discover()
-    result = RfCmd.get_device_ips('list')
+    result = RfCmd.get_device_ips(False, 'list')
     return result
 
 
@@ -88,21 +90,30 @@ def ssh_command(cmd):
         proc.join()
 
 
-def scp_file(local_file, target_location):
+def scp_up_file(local_file, target_location):
     print("Copy file:")
     ips = get_ips()
     for ip in ips:
-        line = retrieve(scpcmd+" {1} root@{0}:{2}".format(ip, local_file,target_location))
+        line = retrieve(scpcmd+" {1} root@{0}:{2}".format(ip, local_file, target_location))
+
+        print(ip + ":\t" + line.rstrip())
+
+def scp_down_file(remote_file, target_file):
+    print("Copy file:")
+    ips = get_ips()
+    for ip in ips:
+        line = retrieve(scpcmd+" root@{0}:{1} {2}".format(ip, remote_file, target_file))
         print(ip + ":\t" + line.rstrip())
 
 def usage(argv):
     print("Usage: {0} COMMAND [params]".format(argv[0]))
     print("will execute macrocommands for interacting with raumfeld if you got many devices, these need SSH access allowed")
     print("COMMAND may be one of the following")
-    print("version            show versions")
-    print("update URL         force update")
-    print("ssh command        any shell available on device, command in quotes")
-    print("scp file target    copy a file to a target location")
+    print("version              show versions")
+    print("update URL           force update")
+    print("ssh command          any shell available on device, command in quotes")
+    print("upload file target   copy a file to a target location")
+    print("download file target copy a file from device to target")
 
     print("")
     print("clean-hostkeys     clean all host keys to avoid security messages")
@@ -123,9 +134,11 @@ def run_macro(argv):
     elif command == 'update':
         force_update(argv[2])
     elif command == 'ssh':
-        ssh_command(argv[2])
-    elif command == 'scp':
-        scp_file(argv[2], argv[3])
+        ssh_command(" ".join(argv[2:]))
+    elif command == 'upload':
+        scp_up_file(argv[2], argv[3])
+    elif command == 'download':
+        scp_down_file(argv[2], argv[3])
     elif command == 'clean-hostkeys':
         clean_host_keys()
     else:

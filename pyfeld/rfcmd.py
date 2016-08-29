@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import json
+import subprocess
 import sys
 import urllib
 import urllib3
@@ -131,6 +132,18 @@ class RfCmd:
         return result
 
     @staticmethod
+    def get_renderer(verbose, format):
+        global quick_access
+        result = ""
+        for renderer in quick_access['renderer']:
+            if verbose == 2:
+                result += renderer['location'] + "\t"
+            if verbose == 1:
+                result += RfCmd.get_pure_ip(renderer['location']) + "\t"
+            result += renderer['name'] + '\n'
+        return result
+
+    @staticmethod
     def get_pure_ip(url):
         loc = urllib3.util.parse_url(url)
         return loc.hostname
@@ -168,11 +181,17 @@ class RfCmd:
         global quick_access
         result = ""
         ip_list = []
+        host_is_set = False
         for device in quick_access['devices']:
             ip_l = urllib3.util.parse_url(device['location'])
-            ip_list.append(InfoList(ip_l.host, RfCmd.map_ip_to_friendly_name(ip_l.host)))
-        ip_list.append(InfoList(quick_access['host'], "<host>"))
-        ip_list.sort(key=lambda x: x.sortItem, reverse=True)
+            if ip_l.host == quick_access['host']:
+                ip_list.append(InfoList(ip_l.host, str(RfCmd.map_ip_to_friendly_name(ip_l.host)) + " <host>"))
+                host_is_set = True
+            else:
+                ip_list.append(InfoList(ip_l.host, str(RfCmd.map_ip_to_friendly_name(ip_l.host))))
+        if not host_is_set:
+            ip_list.append(InfoList(quick_access['host'], "<host>"))
+        ip_list.sort(key=lambda x: x.sortItem, reverse=False)
         if format == 'json':
             return json.dumps(ip_list) + "\n"
         f_list = []
@@ -398,7 +417,6 @@ class RfCmd:
         uc.set_volume(volume_end)
         return "done"
 
-
     @staticmethod
     def discover():
         zones_handler = ZonesHandler()
@@ -408,57 +426,100 @@ class RfCmd:
             zones_handler.publish_state()
         RfCmd.get_raumfeld_infrastructure()
 
+    @staticmethod
+    def find_renderer(name):
+        global quick_access
+        for renderer in quick_access['renderer']:
+            if name == renderer['name']:
+                return RfCmd.get_pure_ip(renderer['location'])
+        return None
 
-
+    @staticmethod
+    def find_device(name):
+        global quick_access
+        if name in '<host>':
+            return quick_access['host']
+        for device in quick_access['devices']:
+            ip_l = urllib3.util.parse_url(device['location'])
+            if str(RfCmd.map_ip_to_friendly_name(ip_l.host)) == name:
+                return ip_l.host
+        return None
 
 def usage(argv):
     print("Usage: " + argv[0] + " [OPTIONS] [COMMAND] {args}")
     print("Version: " + version)
     print("OPTIONS: ")
-    print("  -j,--json               use json as output format, default is plain text lines")
-    print("  -u,--udn                specify room by udn rather by name")
-    print("  -d,--discover           Discover again (will be fast if host didn't change)")
-    print("     --zonebyudn #        Specify zone by udn")
-    print("  -z,--zone #             Specify zone index (use info to get a list), default 0 = first")
-    print("  -r,--zonewithroom name  Specify zone index by using room name")
-    print("  -m,--mediaserver #      Specify media server, default 0 = first")
-    print("  -v,--verbose            Increase verbosity (use twice for more)")
+    print("  -j,--json                 Use json as output format, default is plain text lines")
+    print("  -u,--udn  udn             Specify room by udn rather by name")
+    print("  -d,--discover             Discover again (will be fast if host didn't change)")
+    print("     --zonebyudn #          Specify zone by udn")
+    print("  -z,--zone #               Specify zone index (use info to get a list), default 0 = first")
+    print("  -r,--zonewithroom name    Specify zone index by using room name")
+    print("  -s,--renderer name        Specify renderer by using renderer name")
+    print("  -e,--device name          specify device by name, special case is <host> as name")
+    print("  -m,--mediaserver #        Specify media server, default 0 = first")
+    print("  -v,--verbose              Increase verbosity (use twice for more)")
 
     print("COMMANDS: (some commands return xml)")
-    print("  browse path              Browse for media append /* for recursive")
-    print("  play browseitem          Play item in zone i.e. play '0/My Music/Albums/TheAlbumTitle'")
-    print("  pause|stop|prev|next     Control currently playing items in zone")
+    print("  browse path               Browse for media append /* for recursive")
+    print("  play browseitem           Play item in zone i.e. play '0/My Music/Albums/TheAlbumTitle'")
+    print("  pause|stop|prev|next      Control currently playing items in zone")
 #    print("  currentsong              show current song info")
-    print("  volume #                 Set volume of zone")
-    print("  getvolume                Get volume of zone")
-    print("  roomvolume room  #       Set volume of room")
-    print("  roomgetvolume room       Get volume of room")
-    print("  roomgeteq room           Get equalizer settings of device")
-    print("  mute #                   Set mute state")
-    print("  getmute                  Get mute state of zone")
-    print("  roommute room #          Mute room")
-    print("  roomgetmute room         Get mute state of room")
-    print("  roomgeteq room           Get equalizer settings of device")
-    print("  roomseteq room L M H     Set equalizer device Low Mid High range is -1536 to 1536")
-    print("  position                 Get position info of zone")
-    print("  seek #                   Seek to a specific position")
-    print("  standby state {room(s)}  Set a room into standby state=on/off/auto")
+    print("  volume #                  Set volume of zone")
+    print("  getvolume                 Get volume of zone")
+    print("  roomvolume room  #        Set volume of room")
+    print("  roomgetvolume room        Get volume of room")
+    print("  roomgeteq room            Get equalizer settings of device")
+    print("  mute #                    Set mute state")
+    print("  getmute                   Get mute state of zone")
+    print("  roommute room #           Mute room")
+    print("  roomgetmute room          Get mute state of room")
+    print("  roomgeteq room            Get equalizer settings of device")
+    print("  roomseteq room L M H      Set equalizer device Low Mid High range is -1536 to 1536")
+    print("  position                  Get position info of zone")
+    print("  seek #                    Seek to a specific position")
+    print("  standby state {room(s)}   Set a room into standby state=on/off/auto")
     print("INFOS: (return lists of easily parsable text/json)")
-    print("  host                     print host ip")
-    print("  rooms                    Show list of rooms ordererd alphabetically")
-    print("  deviceips                Show list of devices (rooms/host) ip address")
-    print("  unassignedrooms          Show list of unassigned rooms")
-    print("  zoneinfo                 Show info on zone")
-    print("  zones                    Show list of zones, unassigned room is skipped")
-    print("  info                     Show list of zones and rooms")
+    print("  host                      print host ip")
+    print("  rooms                     Show list of rooms ordererd alphabetically")
+    print("  deviceips                 Show list of devices (rooms/host) ip address (verbose shows name)")
+    print("  renderer                  Show list of renderer names (verbose shows ip)")
+    print("  unassignedrooms           Show list of unassigned rooms")
+    print("  zoneinfo                  Show info on zone")
+    print("  zones                     Show list of zones, unassigned room is skipped")
+    print("  info                      Show list of zones and rooms")
     print("#MACRO OPERATIONS")
-    print("  wait condition           wait for condition (expression) [volume, position, duration, title, artist] i.e. volume < 5 or position==120 ")
-    print("  fade time vols vole      fade volume from vols to vole in time seconds ")
+    print("  wait condition            wait for condition (expression) [volume, position, duration, title, artist] i.e. volume < 5 or position==120 ")
+    print("  fade time vols vole       fade volume from vols to vole in time seconds ")
     print("#ZONE MANAGEMENT (will automatically discover after operating)")
-    print("  createzone {room(s)}     create zone with list of rooms (space seperated)")
-    print("  addtozone {room(s)}      add rooms to existing zone")
-    print("  drop {room(s)}           drop rooms from it's zone")
+    print("  createzone {room(s)}      create zone with list of rooms (space seperated)")
+    print("  addtozone {room(s)}       add rooms to existing zone")
+    print("  drop {room(s)}            drop rooms from it's zone")
+    print("#SSH ")
+    print("  ssh {command...}          send command to given device, device is determined by --renderer or --device")
 
+sshcmd = "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"
+scpcmd = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
+
+def retrieve(cmd):
+    try:
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except Exception as e:
+        return 0
+    lines = ""
+    while True:
+        nextline = process.stdout.readline()
+        if len(nextline) == 0 and process.poll() != None:
+            break
+        lines += nextline.decode('utf-8')
+    return lines
+
+def single_device_command(ip, cmd):
+    cmd = sshcmd + ip + " " + cmd
+    print("running cmd on device {0}: {1}".format(ip, cmd))
+    lines = retrieve(cmd)
+    print("result from {0}".format(ip))
+    return lines
 
 def run_main():
     global quick_access
@@ -469,6 +530,7 @@ def run_main():
     if len(argv) < 2:
         usage(argv)
         sys.exit(2)
+    target_device = None
     zoneIndex = 0
     mediaIndex = 0
     room = ""
@@ -485,9 +547,17 @@ def run_main():
         argpos += 1
         if option == 'verbose' or option == '-v':
             verbose += 1
+        elif option == '-vv':
+            verbose += 2
         elif option == 'help' or option == '-h':
             usage(argv)
             sys.exit(2)
+        elif option == 'renderer' or option == '-s':
+            target_device = RfCmd.find_renderer(argv[argpos])
+            argpos += 1
+        elif option == 'device' or option == '-e':
+            target_device = RfCmd.find_device(argv[argpos])
+            argpos += 1
         elif option == 'udn' or option == '-u':
             device_format = "udn"
         elif option == 'json' or option == '-j':
@@ -720,6 +790,9 @@ def run_main():
     elif operation == 'deviceips':
         result = RfCmd.get_device_ips(verbose, format)
         result = result[:-1]
+    elif operation == 'renderer':
+        result = RfCmd.get_renderer(verbose, format)
+        result = result[:-1]
     elif operation == 'unassignedrooms':
         result = RfCmd.get_unassigned_rooms(verbose, format)
         result = result[:-1]
@@ -732,6 +805,9 @@ def run_main():
     elif operation == 'info':
         result = RfCmd.get_info(verbose, format)
         result = result[:-1]
+    elif operation == 'ssh':
+        combined_args = " ".join(argv[argpos:])
+        result = single_device_command(target_device, combined_args)
     else:
         usage(argv)
     if result is not None:
