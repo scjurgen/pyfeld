@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import unicode_literals
 
 import curses
@@ -78,9 +78,9 @@ class MainGui:
         self.dir.leave()
 
     def play(self):
-        path = self.dir.get_path_for_index(self.selected_index)
+        path = self.dir.get_path_for_index(self.selected_index).decode("utf-8")
         if self.play_in_room is None:
-            command = 'pyfeld play "' + path + '"'
+            command = 'pyfeld -z 0 play "' + path + '"'
         else:
             command = 'pyfeld --zonewithroom "' + self.play_in_room + '" play "' + path + '"'
         self.window.addstr(1, 0, command)
@@ -88,12 +88,14 @@ class MainGui:
         try:
             process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         except Exception as e:
+            self.window.addstr(0, 0, "Launching pyfeld failed")
             return 0
         lines = list()
         while True:
             nextline = process.stdout.readline()
             if len(nextline) == 0 and process.poll() != None:
                 break
+        self.window.addstr(1, 0, str(lines))
         return lines
 
 

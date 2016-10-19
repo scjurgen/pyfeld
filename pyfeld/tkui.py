@@ -62,7 +62,7 @@ class RoomContextMenu:
         menu = Menu(master, tearoff=0, takefocus=1)
         if not is_active and not is_unassigned:
             menu.add_command(label="set zone #{0} as active".format(zone_index),
-                             command=lambda: self.select_zone(callback,int(zone_index)-1))
+                             command=lambda: self.select_zone(callback, int(zone_index)-1))
             menu.add_separator()
         if not is_unassigned:
             menu.add_command(label="remove room {0} from zone".format(room_name),

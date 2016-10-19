@@ -544,6 +544,7 @@ def usage(argv):
     print("  zones                     Show list of zones, unassigned room is skipped")
     print("  info                      Show list of zones, rooms and renderers")
     print("  playinfo                  Show playing info of renderers")
+    # print("  examples                  Show commandline examples")
     print("#MACRO OPERATIONS")
     print("  wait condition            wait for condition (expression) [volume, position, duration, title, artist] i.e. volume < 5 or position==120 ")
     print("  fade time vols vole       fade volume from vols to vole in time seconds ")
@@ -556,6 +557,7 @@ def usage(argv):
 
 sshcmd = "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"
 scpcmd = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
+
 
 def retrieve(cmd):
     try:
@@ -570,12 +572,16 @@ def retrieve(cmd):
         lines += nextline.decode('utf-8')
     return lines
 
+
 def single_device_command(ip, cmd):
     cmd = sshcmd + ip + " " + cmd
     print("running cmd on device {0}: {1}".format(ip, cmd))
     lines = retrieve(cmd)
     print("result from {0}".format(ip))
     return lines
+
+
+#TODO: this thing is ugly big and needs refactoring
 
 def run_main():
     global quick_access
@@ -587,7 +593,7 @@ def run_main():
         usage(argv)
         sys.exit(2)
     target_device = None
-    zoneIndex = 0
+    zoneIndex = -1
     mediaIndex = 0
     room = ""
     device_format = "named"
@@ -660,6 +666,10 @@ def run_main():
             print("unknown option --{0}".format(option))
             usage(argv)
             sys.exit(2)
+
+    if zoneIndex == -1:
+        zoneIndex = 0
+        uc = UpnpCommand(quick_access['zones'][0]['host'])
 
     uc_media = UpnpCommand(quick_access['mediaserver'][mediaIndex]['location'])
     operation = argv[argpos]
