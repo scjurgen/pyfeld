@@ -21,7 +21,7 @@ from pyfeld.getRaumfeld import RaumfeldDeviceSettings
 from pyfeld.zonesHandler import ZonesHandler
 from pyfeld.didlInfo import DidlInfo
 
-version = "0.9.2"
+version = "0.9.3"
 
 quick_access = dict()
 raumfeld_host_device = None
