@@ -71,8 +71,8 @@ def force_update(url):
         device_pingable[ip] = True
         device_unpingable[ip] = False
 
-    while not all(device_pingable):
-        sleep(5)
+###    while not all(device_pingable):
+###        sleep(5)
 
     for proc in processes:
         proc.join()
