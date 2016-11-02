@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import subprocess
 import sys
 import threading
+from time import sleep
 
 try:
     from pyfeld.rfcmd import RfCmd
@@ -62,10 +63,17 @@ def force_update(url):
     print("Force updating with url " + url)
     ips = get_ips()
     processes = list()
+    device_pingable = dir()
     for ip in ips:
         proc = threading.Thread(target=single_device_update, args=(ip, url))
         proc.start()
         processes.append(proc)
+        device_pingable[ip] = True
+        device_unpingable[ip] = False
+
+    while not all(device_pingable):
+        sleep(5)
+
     for proc in processes:
         proc.join()
 
@@ -98,6 +106,7 @@ def scp_up_file(local_file, target_location):
 
         print(ip + ":\t" + line.rstrip())
 
+
 def scp_down_file(remote_file, target_file):
     print("Copy file:")
     ips = get_ips()
@@ -105,15 +114,16 @@ def scp_down_file(remote_file, target_file):
         line = retrieve(scpcmd+" root@{0}:{1} {2}".format(ip, remote_file, target_file))
         print(ip + ":\t" + line.rstrip())
 
+
 def usage(argv):
     print("Usage: {0} COMMAND [params]".format(argv[0]))
-    print("will execute macrocommands for interacting with raumfeld if you got many devices, these need SSH access allowed")
+    print("Execute macrocommands over ssh for interacting with raumfeld if you got many devices, these need SSH access allowed")
     print("COMMAND may be one of the following")
-    print("version              show versions")
-    print("update URL           force update")
-    print("ssh command          any shell available on device, command in quotes")
-    print("upload file target   copy a file to a target location")
-    print("download file target copy a file from device to target")
+    print("version                   show versions")
+    print("update <URL>              force update")
+    print("ssh <command>             any shell available on device, command in quotes")
+    print("upload <file> <target>    copy a file to a target location")
+    print("download <file> <target>  copy a file from device to target")
 
     print("")
     print("clean-hostkeys     clean all host keys to avoid security messages")
@@ -123,6 +133,7 @@ def usage(argv):
     print("Host *        (or 192.168.*")
     print("StrictHostKeyChecking no")
     '''
+
 
 def run_macro(argv):
     if len(argv) < 2:
@@ -142,8 +153,10 @@ def run_macro(argv):
     elif command == 'clean-hostkeys':
         clean_host_keys()
     else:
-        print("Unknown command {0}".command)
+        print("Unknown command {0}".format(command))
         usage(argv)
+
+
 def run_main():
     run_macro(sys.argv)
 

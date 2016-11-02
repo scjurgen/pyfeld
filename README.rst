@@ -82,3 +82,14 @@ Retrive UDN's:
 ``pyfeld --udn createzone uuid:f7052a34-37f6-432f-b584-837466474205``
 ``pyfeld --udn roomsetvolume uuid:f7052a34-37f6-432f-b584-837466474205 10``
 
+
+Todo:
+=====
+
+macro operations to wait for:
+ - seek position
+ - certain song
+
+pyfeldmacro update with killing of shell process
+
+
