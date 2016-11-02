@@ -1,0 +1,18 @@
+todo curses mode:
+
+Save/Restore browse position
+
+
+select rooms
+create zones
+show current zones/rooms values
+- volume
+- position
+- title
+- sleep
+- mute
+- eq
+
+
+scroll through songs
+
