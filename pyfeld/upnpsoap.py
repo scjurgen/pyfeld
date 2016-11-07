@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import urllib3
 
+
 class UpnpSoap:
     @staticmethod
     def extractSingleTag(self, data, tag):

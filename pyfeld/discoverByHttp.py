@@ -6,8 +6,8 @@ import urllib3
 
 from pyfeld.getRaumfeld import RaumfeldDeviceSettings
 
-class DiscoverByHttp:
 
+class DiscoverByHttp:
     def __init__(self):
         local_ip = RaumfeldDeviceSettings.get_local_ip_address()
         decomposed = local_ip.split(".")
@@ -21,7 +21,6 @@ class DiscoverByHttp:
 
         for proc in self.processes:
             proc.join()
-
 
     def kill_after_found(self):
         for proc in self.processes:

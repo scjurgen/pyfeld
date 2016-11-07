@@ -17,7 +17,7 @@ else:
 
 setup(
     name='pyfeld',
-    version='0.9.3',
+    version='0.9.4',
     author='Jürgen Schwietering',
     author_email='scjurgen@yahoo.com',
     description='Raumfeld controlled by python scripts',
@@ -25,7 +25,7 @@ setup(
     license='MIT',
     keywords='raumfeld wlan-speakers loudspeakers upnp audio media',
     url='http://github.com/scjurgen/pyfeld',
-    packages=['pyfeld',],
+    packages=['pyfeld', ],
     include_package_data=True,
     classifiers=[
         'Development Status :: 3 - Alpha',
