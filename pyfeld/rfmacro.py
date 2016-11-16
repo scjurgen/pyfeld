@@ -6,6 +6,11 @@ import sys
 import threading
 from time import sleep
 
+import re
+
+from pyfeld.pingTest import ping_test_alive
+
+
 try:
     from pyfeld.rfcmd import RfCmd
 except:
@@ -16,6 +21,22 @@ scpcmd = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
 
 
 #class RFMacroCommand:
+
+class UpdateProcessesFreeToKill:
+    def __init__(self):
+        self.processList = list()
+
+    def runCommand(self, cmd):
+        try:
+            process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.processList.append(process)
+        except Exception as e:
+            return 0
+
+    def killall(self):
+        for proc in self.processList:
+            proc.kill()
+
 
 def retrieve(cmd):
     try:
@@ -41,8 +62,20 @@ def show_versions():
     print("Versions installed:")
     ips = get_ips()
     for ip in ips:
+        line = retrieve(sshcmd+ip+" cat /var/raumfeld-1.0/device-role.json")
+        if "true" in line:
+            moreinfo = "host"
+        else:
+            moreinfo = "slave"
+        line = retrieve(sshcmd+ip+" cat /var/raumfeld-1.0/renderer-config.ini")
+        renderer_name = "unknown"
+        pattern = '.*renderer-name=(.*)'
+        m = re.search(pattern, str(line))
+        if m:
+            renderer_name = m.group(1)
         line = retrieve(sshcmd+ip+" cat /etc/raumfeld-version")
-        print(ip + ":\t" + line.rstrip())
+        line_streamcast = retrieve(sshcmd+ip+" streamcastd --version")
+        print(ip + "\t" + moreinfo + "\t" + line.rstrip() + "\t" + line_streamcast.rstrip() + "\t" + str(renderer_name))
 
 
 def clean_host_keys():
@@ -53,29 +86,40 @@ def clean_host_keys():
         print(ip + ":\t" + line.rstrip())
 
 
-def single_device_update(ip, url):
+def single_device_update(free_to_kill, ip, url):
     cmd = sshcmd + ip + " raumfeld-update --force " + url
     print("running cmd: "+cmd)
-    retrieve(cmd)
+    free_to_kill.runCommand(cmd)
 
 
 def force_update(url):
     print("Force updating with url " + url)
     ips = get_ips()
     processes = list()
-    device_pingable = dir()
+    device_pingable = dict()
+    free_to_kill = UpdateProcessesFreeToKill()
+    count = 0
     for ip in ips:
-        proc = threading.Thread(target=single_device_update, args=(ip, url))
+        proc = threading.Thread(target=single_device_update, args=(free_to_kill, ip, url))
         proc.start()
         processes.append(proc)
         device_pingable[ip] = True
-        device_unpingable[ip] = False
+        count += 1
+    sleep(5)
+    while count > 0:
+        sleep(2)
+        for ip in ips:
+            if device_pingable[ip]:
+                print("testing if ping alive: " + ip)
+                if not ping_test_alive(ip):
+                    device_pingable[ip] = False
+                    count -= 1
 
-###    while not all(device_pingable):
-###        sleep(5)
-
+    print("done updating shells. Leaving the houses now.")
+    free_to_kill.killall()
     for proc in processes:
         proc.join()
+    print("Processes joined joyfully")
 
 
 def single_device_command(ip, cmd):

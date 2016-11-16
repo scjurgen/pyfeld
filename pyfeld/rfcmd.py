@@ -21,7 +21,7 @@ from pyfeld.getRaumfeld import RaumfeldDeviceSettings
 from pyfeld.zonesHandler import ZonesHandler
 from pyfeld.didlInfo import DidlInfo
 
-version = "0.9.3"
+version = "0.9.7"
 
 quick_access = dict()
 raumfeld_host_device = None
@@ -372,7 +372,7 @@ class RfCmd:
                     maxsize = len(zone['name'])
         maxsize += 2
         result_list = list()
-        result_list.append(["Zone","Vol","Track","Length","Pos","Src","BR","Src","Track title","Track Info"])
+        result_list.append(["Zone", "Vol", "Track", "Length", "Pos", "Src", "BR", "Src", "Track title", "Track Info"])
         for zone in quick_access['zones']:
             if zone['rooms'] is not None:
                 single_result = list()
@@ -396,16 +396,21 @@ class RfCmd:
                     single_result.append("-")
 
                 media_info = uc.get_media_info()
-                if 'CurrentURIMetaData' in media_info:
-                    didlinfo = DidlInfo(media_info['CurrentURIMetaData']).get_items()
-                    media = didlinfo['title']
-                    single_result.append(media)
-                else:
+                try:
+                    if 'CurrentURIMetaData' in media_info:
+                        didlinfo = DidlInfo(media_info['CurrentURIMetaData']).get_items()
+                        media = didlinfo['title']
+                        single_result.append(media)
+                except:
                     single_result.append("-")
                 result_list.append(single_result)
-        t = Texttable(250)
-        t.add_rows(result_list)
-        return t.draw()
+        if format == 'json':
+            result = json.dumps(result_list, sort_keys=True, indent=2) + "\n"
+        else:
+            t = Texttable(250)
+            t.add_rows(result_list)
+            result = t.draw()
+        return result
 
     @staticmethod
     def get_zone_info(format):
@@ -543,6 +548,7 @@ def usage(argv):
     print("  zoneinfo                  Show info on zone")
     print("  zones                     Show list of zones, unassigned room is skipped")
     print("  info                      Show list of zones, rooms and renderers")
+    print("  status                    Show list of status of renderers")
     print("  playinfo                  Show playing info of renderers")
     # print("  examples                  Show commandline examples")
     print("#MACRO OPERATIONS")

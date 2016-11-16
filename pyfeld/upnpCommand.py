@@ -55,7 +55,8 @@ class UpnpCommand:
             else:
                 print("query {0} returned status_code:{1}".format(control_url,response.status_code))
         except Exception as e:
-            print("host send error {0}".format(e))
+            if self.verbose:
+                print("warning! host send error {0}".format(e))
         return None
 
     def device_send_rendering(self, action, action_args):

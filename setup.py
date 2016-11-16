@@ -17,13 +17,13 @@ else:
 
 setup(
     name='pyfeld',
-    version='0.9.4',
+    version='0.9.7',
     author='Jürgen Schwietering',
     author_email='scjurgen@yahoo.com',
     description='Raumfeld controlled by python scripts',
     long_description=long_description,
     license='MIT',
-    keywords='raumfeld wlan-speakers loudspeakers upnp audio media',
+    keywords=['raumfeld', 'wlan-speakers', 'loudspeakers', 'upnp', 'audio', 'media', 'casting', 'streaming'],
     url='http://github.com/scjurgen/pyfeld',
     packages=['pyfeld', ],
     include_package_data=True,
