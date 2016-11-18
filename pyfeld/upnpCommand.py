@@ -230,6 +230,16 @@ class UpnpCommand:
     """
     device stuff
     """
+    def get_setting(self, setting_name, output_format='plain'):
+        xml_root = self.device_send_rendering("GetDeviceSetting", '<InstanceID>0</InstanceID>' +
+                                              '<Name>' + str(setting_name) + '</Name>'
+                                           )
+        dict_result = XmlHelper.xml_extract_dict(xml_root, ['Value'])
+        if output_format == 'json':
+            return '{ "Value": "' + dict_result['Value'] + '"}'
+        else:
+            return dict_result['Value']
+
     def get_filter(self, output_format='plain'):
         xml_root = self.device_send_rendering("GetFilter", '<InstanceID>0</InstanceID>'
                                            )
@@ -365,6 +375,7 @@ def usage(argv):
     print("INFO: ")
     print("  getv                  get volume info")
     print("  position              GetPositionInfo ")
+    print("  getsetting id            GetSetting")
     print("  media                 GetMediaInfo")
     print("  transport             GetTransportSettings ")
     print("  allinfo               all infos in one call ")
@@ -405,6 +416,8 @@ def main(argv):
         result = uc.get_transport_setting()
     elif operation == 'getstatevar':
         result = uc.get_state_var()
+    elif operation == 'getsetting':
+        result = uc.get_setting(sys.argv[3])
     elif operation == 'media':
         result = uc.get_media_info()
         result += uc.get_position_info()

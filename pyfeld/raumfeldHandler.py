@@ -33,7 +33,7 @@ class MediaDevice:
         self.name = name
 
 
-class ZonesHandler:
+class RaumfeldHandler:
     active_zones = []
     new_zones = []
     media_servers = set()
@@ -50,7 +50,7 @@ class ZonesHandler:
     def set_active_zones(self, zones, zone_hash):
         self.active_zones = zones
         self.zone_hash = zone_hash
-        self.save_quick_access()
+        self.__save_quick_access()
 
     def find_zone_for_room(self, room_name):
         index = 0
@@ -207,7 +207,7 @@ class ZonesHandler:
                 room_renderer_udn = el.getAttribute('udn')
                 location = self.get_network_location_by_udn(room_renderer_udn, xmlListDevices)
                 renderer = Renderer(room_renderer_udn, el.getAttribute('name'), location)
-                ZonesHandler.renderers.append(renderer)
+                RaumfeldHandler.renderers.append(renderer)
                 renderers.append(renderer)
 
             room_obj = Room(room_udn, renderers, room.attributes["name"].value, location)
@@ -217,10 +217,10 @@ class ZonesHandler:
         return zone_obj
 
     def parse_devices_in_zone_raumfeld(self, xmlListDevices):
-        ZonesHandler.media_servers = set()
-        ZonesHandler.config_device = set()
-        ZonesHandler.raumfeld_device = set()
-        ZonesHandler.media_renderers = set()
+        RaumfeldHandler.media_servers = set()
+        RaumfeldHandler.config_device = set()
+        RaumfeldHandler.raumfeld_device = set()
+        RaumfeldHandler.media_renderers = set()
         devices = xmlListDevices.getElementsByTagName("device")
         for device in devices:
             if device.getAttribute('type') == "urn:schemas-upnp-org:device:MediaServer:1":
@@ -234,7 +234,7 @@ class ZonesHandler:
                         print("Media server: ", host_path.group(1))
                     found_device = MediaDevice(udn, host_path.group(1), type, name)
                     found_device.upnp_service = self.get_zone_services(xmlListDevices, udn)
-                    ZonesHandler.media_servers.add(found_device)
+                    RaumfeldHandler.media_servers.add(found_device)
 
             if device.getAttribute('type') == "urn:schemas-raumfeld-com:device:ConfigDevice:1":
                 if device.childNodes[0].nodeValue == 'Raumfeld ConfigDevice':
@@ -247,7 +247,7 @@ class ZonesHandler:
                     name = device.firstChild.nodeValue
                     found_device = MediaDevice(udn, host_path.group(1), type, name)
                     found_device.upnp_service = self.get_zone_services(xmlListDevices, udn)
-                    ZonesHandler.config_device.add(found_device)
+                    RaumfeldHandler.config_device.add(found_device)
 
             if device.getAttribute('type') == "urn:schemas-upnp-org:device:MediaRenderer:1":
                 location = device.getAttribute('location')
@@ -259,7 +259,7 @@ class ZonesHandler:
                     print("Media renderer: ", host_path.group(1))
                 found_device = MediaDevice(udn, host_path.group(1), type, name)
                 found_device.upnp_service = self.get_zone_services(xmlListDevices, udn)
-                ZonesHandler.media_renderers.add(found_device)
+                RaumfeldHandler.media_renderers.add(found_device)
 
             if device.getAttribute('type') == "urn:schemas-raumfeld-com:device:RaumfeldDevice:1":
                 if device.childNodes[0].nodeValue == 'Raumfeld Device':
@@ -272,7 +272,7 @@ class ZonesHandler:
                         print("Raumfeld Device: ", host_path.group(1))
                     found_device = MediaDevice(udn, host_path.group(1), type, name)
                     found_device.upnp_service = self.get_zone_services(xmlListDevices, udn)
-                    ZonesHandler.raumfeld_device.add(found_device)
+                    RaumfeldHandler.raumfeld_device.add(found_device)
 
     def get_zone_services(self, xmlListDevices, udn):
         devices = xmlListDevices.getElementsByTagName("device")
@@ -300,7 +300,7 @@ class ZonesHandler:
                 xml_root_devices = minidom.parseString(xml_data_devices)
                 self.parse_devices_in_zone_raumfeld(xml_root_devices)
                 zones = xml_root.getElementsByTagName("zone")
-                ZonesHandler.renderers = list()
+                RaumfeldHandler.renderers = list()
                 for zone in zones:
                     try:
                         udn_id = zone.attributes["udn"].value
@@ -341,7 +341,7 @@ class ZonesHandler:
                 self.found_protocol_ip = self.__get_host_ip_from_local()
             HostDevice.set(self.found_protocol_ip)
             zones = self.check_for_zone("http://" + self.found_protocol_ip)
-            current_zone_hash = ZonesHandler.hash_zone(zones)
+            current_zone_hash = RaumfeldHandler.hash_zone(zones)
             if current_zone_hash != self.zone_hash:
                 HostDevice.set(self.found_protocol_ip)
                 self.set_active_zones(zones, current_zone_hash)
@@ -367,7 +367,7 @@ class ZonesHandler:
                 if zones is not None:
                     self.found_protocol_ip = ip
                     new_zones.extend(zones)
-            zone_hash = ZonesHandler.hash_zone(self.active_zones)
+            zone_hash = RaumfeldHandler.hash_zone(self.active_zones)
             self.set_active_zones(new_zones, zone_hash)
 
         except Exception as e:
@@ -516,16 +516,13 @@ class ZonesHandler:
                 except Exception as e:
                     resstr += "\nError: command failed:" + str(e)
                 resstr += "\n"
-            for item in ZonesHandler.media_servers:
+            for item in RaumfeldHandler.media_servers:
                 resstr += "Mediaserver = " + str(item.location) + "\n"
             resstr += "zone hash:" + self.zone_hash + "\n"
             return resstr
         except Exception as e:
             err_print("get_state error {0}".format(e))
         return resstr
-
-    def create_zone_with_rooms(self, udn_list):
-        pass
 
     def find_udn(self, udn):
         result_list = dict()
@@ -590,7 +587,7 @@ class ZonesHandler:
             uc = UpnpCommand(server.location)
             return uc.browse(path)
 
-    def save_quick_access(self):
+    def __save_quick_access(self):
         values = dict()
         media_server_list = list()
 
@@ -618,6 +615,19 @@ class ZonesHandler:
                 pass
             device_list.append(device_dict)
         values['mediarenderer'] = device_list
+
+        configdevice_list = list()
+        for config_device in self.config_device:
+            device_dict = dict()
+            try:
+                device_dict['udn'] = str(config_device.udn)
+                device_dict['location'] = str(config_device.location)
+                device_dict['type'] = str(config_device.type)
+                device_dict['name'] = str(config_device.name)
+            except Exception as e:
+                pass
+            configdevice_list.append(device_dict)
+        values['configdevice'] = configdevice_list
 
         for server in self.media_servers:
             mserver_dict = dict()
@@ -679,7 +689,8 @@ class ZonesHandler:
         with open(Settings.home_directory()+"/data.json", 'w') as f:
             json.dump(values, f, ensure_ascii=True, sort_keys=True, indent=4)
 
-    def __get_host_ip_from_local(self):
+    @staticmethod
+    def __get_host_ip_from_local():
         try:
             s = open(Settings.home_directory()+"/data.json", 'r').read()
             quick_access = json.loads(s)
@@ -694,7 +705,7 @@ def main(argv):
         err_print("missing ip")
         sys.exit(2)
     host = sys.argv[1]
-    zone = ZonesHandler()
+    zone = RaumfeldHandler()
     zone.process_batch(bytearray(host, "UTF-8"), False)
     print(zone.get_state())
 

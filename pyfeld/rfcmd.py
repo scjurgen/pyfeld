@@ -18,13 +18,14 @@ from time import sleep
 from pyfeld.settings import Settings
 from pyfeld.upnpCommand import UpnpCommand
 from pyfeld.getRaumfeld import RaumfeldDeviceSettings
-from pyfeld.zonesHandler import ZonesHandler
+from pyfeld.raumfeldHandler import RaumfeldHandler
 from pyfeld.didlInfo import DidlInfo
 
 version = "0.9.7"
 
 quick_access = dict()
 raumfeld_host_device = None
+
 
 class InfoList:
     def __init__(self, sortItem, others):
@@ -479,7 +480,7 @@ class RfCmd:
 
     @staticmethod
     def discover():
-        zones_handler = ZonesHandler()
+        zones_handler = RaumfeldHandler()
         if not zones_handler.reprocess():
             local_ip = RaumfeldDeviceSettings.get_local_ip_address()
             zones_handler.search_nmap_range(local_ip + "/24")
@@ -735,7 +736,7 @@ def run_main():
         else:
             udn = RfCmd.get_room_udn(argv[argpos])
         result = uc.get_room_volume(udn)
-    elif operation == 'roomsetvolume':
+    elif operation == 'roomsetvolume' or operation == 'roomvolume':
         if device_format == 'udn':
             udn = argv[argpos]
         else:

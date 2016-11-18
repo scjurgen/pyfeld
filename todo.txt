@@ -1,8 +1,14 @@
+
+todo general:
+
+cleanup commands
+cleanup into split modules
+find out speed on windows problem
+
 todo curses mode:
-
 Save/Restore browse position
-
-
+set balance
+subscription daemon for state changes
 select rooms
 create zones
 show current zones/rooms values
@@ -16,3 +22,206 @@ show current zones/rooms values
 
 scroll through songs
 
+TODO: add missing renderer controls
+
+rendercontrol.xml:
+# PlaySystemSound
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- Sound: in, A_ARG_TYPE_SystemSound
+-- 
+# GetMute
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- Channel: in, A_ARG_TYPE_Channel
+- CurrentMute: out, Mute
+-- 
+# SetMute
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- Channel: in, A_ARG_TYPE_Channel
+- DesiredMute: in, Mute
+-- 
+# GetVolume
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- Channel: in, A_ARG_TYPE_Channel
+- CurrentVolume: out, Volume
+-- 
+# SetVolume
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- Channel: in, A_ARG_TYPE_Channel
+- DesiredVolume: in, Volume
+-- 
+# ChangeVolume
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- Amount: in, A_ARG_TYPE_VolumeDifference
+-- 
+# GetVolumeDB
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- Channel: in, A_ARG_TYPE_Channel
+- CurrentVolume: out, VolumeDB
+-- 
+# SetVolumeDB
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- Channel: in, A_ARG_TYPE_Channel
+- DesiredVolume: in, VolumeDB
+-- 
+# GetBalance
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- CurrentBalance: out, Balance
+-- 
+# SetBalance
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- DesiredBalance: in, Balance
+-- 
+# GetVolumeDBRange
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- Channel: in, A_ARG_TYPE_Channel
+- MinValue: out, VolumeDB
+- MaxValue: out, VolumeDB
+-- 
+# GetLineInStreamURL
+args:
+- URL: out, A_ARG_TYPE_String
+- Mimetype: out, A_ARG_TYPE_String
+-- 
+# SetFilter
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- LowDB: in, A_ARG_TYPE_Filter
+- MidDB: in, A_ARG_TYPE_Filter
+- HighDB: in, A_ARG_TYPE_Filter
+-- 
+# GetFilter
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- LowDB: out, A_ARG_TYPE_Filter
+- MidDB: out, A_ARG_TYPE_Filter
+- HighDB: out, A_ARG_TYPE_Filter
+-- 
+# ToggleFilter
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- FilterName: in, A_ARG_TYPE_FilterName
+- Enable: in, A_ARG_TYPE_Boolean
+-- 
+# QueryFilter
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- FilterName: in, A_ARG_TYPE_FilterName
+- Enabled: out, A_ARG_TYPE_Boolean
+-- 
+# SetDeviceSetting
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- Name: in, A_ARG_TYPE_SettingName
+- Value: in, A_ARG_TYPE_SettingValue
+-- 
+# GetDeviceSetting
+args:
+- InstanceID: in, A_ARG_TYPE_InstanceID
+- Name: in, A_ARG_TYPE_SettingName
+- Value: out, A_ARG_TYPE_SettingValue
+-- 
+</actionList>
+<serviceStateTable>
+<stateVariable sendEvents="yes">
+<name>LastChange
+<dataType>string</dataType>
+</stateVariable>
+<stateVariable sendEvents="no">
+<name>Mute
+<dataType>boolean</dataType>
+</stateVariable>
+<stateVariable sendEvents="no">
+<name>Volume
+<dataType>ui2</dataType>
+<allowedValueRange>
+<minimum>0</minimum>
+<maximum>100</maximum>
+<step>1</step>
+</allowedValueRange>
+</stateVariable>
+<stateVariable sendEvents="no">
+<name>VolumeDB
+<dataType>i2</dataType>
+</stateVariable>
+<stateVariable sendEvents="yes">
+<name>Balance
+<dataType>i2</dataType>
+<allowedValueRange>
+<minimum>-3072</minimum>
+<maximum>3072</maximum>
+<step>128</step>
+</allowedValueRange>
+</stateVariable>
+<stateVariable sendEvents="no">
+<name>A_ARG_TYPE_Channel
+<dataType>string</dataType>
+<allowedValueList>
+<allowedValue>Master</allowedValue>
+<allowedValue>Input</allowedValue>
+</allowedValueList>
+</stateVariable>
+<stateVariable sendEvents="no">
+<name>A_ARG_TYPE_SystemSound
+<dataType>string</dataType>
+<allowedValueList>
+<allowedValue>Success</allowedValue>
+<allowedValue>Failure</allowedValue>
+</allowedValueList>
+</stateVariable>
+<stateVariable sendEvents="no">
+<name>A_ARG_TYPE_InstanceID
+<dataType>ui4</dataType>
+</stateVariable>
+<stateVariable sendEvents="no">
+<name>A_ARG_TYPE_String
+<dataType>string</dataType>
+</stateVariable>
+<stateVariable sendEvents="no">
+<name>A_ARG_TYPE_Filter
+<dataType>i4</dataType>
+<allowedValueRange>
+<minimum>-4096</minimum>
+<maximum>4096</maximum>
+</allowedValueRange>
+</stateVariable>
+<stateVariable sendEvents="no">
+<name>A_ARG_TYPE_FilterName
+<dataType>string</dataType>
+<allowedValueList>
+<allowedValue>stereo-widening</allowedValue>
+</allowedValueList>
+</stateVariable>
+<stateVariable sendEvents="no">
+<name>A_ARG_TYPE_SettingName
+<dataType>string</dataType>
+</stateVariable>
+<stateVariable sendEvents="no">
+<name>A_ARG_TYPE_SettingValue
+<dataType>string</dataType>
+</stateVariable>
+<stateVariable sendEvents="no">
+<name>A_ARG_TYPE_VolumeDifference
+<dataType>i1</dataType>
+<allowedValueRange>
+<minimum>-100</minimum>
+<maximum>100</maximum>
+<step>1</step>
+</allowedValueRange>
+</stateVariable>
+<stateVariable sendEvents="no">
+<name>A_ARG_TYPE_Boolean
+<dataType>boolean</dataType>
+</stateVariable>
+</serviceStateTable>
+</scpd>
