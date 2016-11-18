@@ -213,7 +213,6 @@ class RfCmd:
                 result += ip + "\n"
         return result
 
-
     @staticmethod
     def get_device_location_by_udn(udn):
         global quick_access
@@ -228,7 +227,6 @@ class RfCmd:
                         loc = urllib3.util.parse_url(room['location'])
                         return loc.netloc
         return None
-
 
     @staticmethod
     def get_rooms(verbose, format):
@@ -259,7 +257,6 @@ class RfCmd:
                 result += r + "\n"
         return result
 
-
     @staticmethod
     def get_didl_extract(didl_result, format="plain"):
         didlinfo = DidlInfo(didl_result, True)
@@ -277,12 +274,10 @@ class RfCmd:
             result += items['rfsourceID'] + "\n"
         return result
 
-
     @staticmethod
     #what should we do here i.e. pack vol, eq, balance?
     def get_room_info(uc, udn):
         result = uc.get_room_volume(udn)
-
 
     @staticmethod
     def get_specific_zoneinfo(uc, format):
@@ -359,8 +354,6 @@ class RfCmd:
                                 result += "\t\tRenderer '{0}'\n".format(renderer['name'])   #.
                     i += 1
         return result
-
-
 
     @staticmethod
     def get_play_info(verbose, format):
@@ -546,6 +539,14 @@ def usage(argv):
     print("  position                  Get position info of zone")
     print("  seek #                    Seek to a specific position")
     print("  standby state {room(s)}   Set a room into standby state=on/off/auto")
+    print("  roomgetsetting room value Get special setting of soundbar/deck:")
+    print("                             Audio Mode: Stereo, Arena, Theater, Voice")
+    print("                             Source Select: TV_ARC, OpticalIn, LineIn, Raumfeld")
+    print("                             TV Source Select, TV_ARC, OpticalIn, LineIn")
+    print("                             Subwoofer Playback Volume: -10 ... 10")
+    print("                             Subwoofer X-Over: 80Hz, 100Hz, 120Hz, 140Hz")
+    print("                             Night Mode Switch")
+    print("  roomsetsetting room value #  Set special setting of soundbar/deck")
     print("INFOS: (return lists of easily parsable text/json)")
     print("  host                      print host ip")
     print("  rooms                     Show list of rooms ordererd alphabetically")
@@ -753,6 +754,25 @@ def run_main():
         result = uc.set_mute(argv[arg_pos])
     elif operation == 'getmute':
         result = uc.get_mute(format)
+    elif operation == 'roomgetsetting':
+        if device_format == 'udn':
+            udn = argv[arg_pos]
+        else:
+            udn = RfCmd.get_room_udn(argv[arg_pos])
+        location = RfCmd.get_device_location_by_udn(udn)
+        urc = UpnpCommand(location)
+        arg_pos += 1
+        result = urc.get_setting(argv[arg_pos], format)
+    elif operation == 'roomsetsetting':
+        if device_format == 'udn':
+            udn = argv[arg_pos]
+        else:
+            udn = RfCmd.get_room_udn(argv[arg_pos])
+        location = RfCmd.get_device_location_by_udn(udn)
+        urc = UpnpCommand(location)
+        arg_pos += 1
+        result = urc.set_setting(argv[arg_pos], argv[arg_pos+1])
+
     elif operation == 'roomgetmute':
         if device_format == 'udn':
             udn = argv[arg_pos]
