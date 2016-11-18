@@ -105,14 +105,30 @@ def force_update(url):
         processes.append(proc)
         device_pingable[ip] = True
         count += 1
+
+    temp_count = count
+    print("Waiting for action...")
     sleep(5)
     while count > 0:
-        sleep(2)
+        sleep(10)
+        print("")
         for ip in ips:
             if device_pingable[ip]:
-                print("testing if ping alive: " + ip)
+                print("testing if ping alive: " + ip + " " + str(RfCmd.map_ip_to_friendly_name(ip)))
                 if not ping_test_alive(ip):
                     device_pingable[ip] = False
+                    count -= 1
+
+    count = temp_count
+    print("Rebooting in progress...")
+    while count > 0:
+        sleep(10)
+        print("")
+        for ip in ips:
+            if not device_pingable[ip]:
+                print("testing if ping reborn: " + ip + " " + str(RfCmd.map_ip_to_friendly_name(ip)))
+                if ping_test_alive(ip):
+                    device_pingable[ip] = True
                     count -= 1
 
     print("done updating shells. Leaving the houses now.")

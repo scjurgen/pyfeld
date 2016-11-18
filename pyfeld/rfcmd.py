@@ -611,15 +611,15 @@ def run_main():
     room = ""
     device_format = "named"
     format = "plain"
-    argpos = 1
+    arg_pos = 1
     RfCmd.get_raumfeld_infrastructure()
 
-    while argv[argpos].startswith('-'):
-        if argv[argpos].startswith('--'):
-            option = argv[argpos][2:]
+    while argv[arg_pos].startswith('-'):
+        if argv[arg_pos].startswith('--'):
+            option = argv[arg_pos][2:]
         else:
-            option = argv[argpos]
-        argpos += 1
+            option = argv[arg_pos]
+        arg_pos += 1
         if option == 'verbose' or option == '-v':
             verbose += 1
         elif option == '-vv':
@@ -628,11 +628,11 @@ def run_main():
             usage(argv)
             sys.exit(2)
         elif option == 'renderer' or option == '-s':
-            target_device = RfCmd.find_renderer(argv[argpos])
-            argpos += 1
+            target_device = RfCmd.find_renderer(argv[arg_pos])
+            arg_pos += 1
         elif option == 'device' or option == '-e':
-            target_device = RfCmd.find_device(argv[argpos])
-            argpos += 1
+            target_device = RfCmd.find_device(argv[arg_pos])
+            arg_pos += 1
         elif option == 'udn' or option == '-u':
             device_format = "udn"
         elif option == 'json' or option == '-j':
@@ -640,26 +640,26 @@ def run_main():
         elif option == 'discover' or option == '-d':
             RfCmd.discover()
             uc = UpnpCommand(quick_access['zones'][zoneIndex]['host'])
-            if argpos == len(argv):
+            if arg_pos == len(argv):
                 print("done")
                 sys.exit(0)
         elif option == 'zonebyudn':
             found = False
             for index, zone in enumerate(quick_access['zones']):
-                if argv[argpos] == zone['udn']:
+                if argv[arg_pos] == zone['udn']:
                     zoneIndex = index
                     uc = UpnpCommand(quick_access['zones'][zoneIndex]['host'])
                     found = True
             if not found:
-                print("Zoneudn {0} not found".format(argv[argpos]))
+                print("Zoneudn {0} not found".format(argv[arg_pos]))
                 sys.exit(-1)
-            argpos += 1
+            arg_pos += 1
         elif option == 'zone' or option == '-z':
-            zoneIndex = int(argv[argpos])
+            zoneIndex = int(argv[arg_pos])
             uc = UpnpCommand(quick_access['zones'][zoneIndex]['host'])
-            argpos += 1
+            arg_pos += 1
         elif option == 'zonewithroom' or option == '-r':
-            roomName = argv[argpos]
+            roomName = argv[arg_pos]
             zoneIndex = RfCmd.get_room_zone_index(roomName)
             if verbose:
                 print("Room found in zone ", zoneIndex)
@@ -671,10 +671,10 @@ def run_main():
                 print('error: room is unassigned: ' + roomName)
                 exit(-1)
             uc = UpnpCommand(quick_access['zones'][zoneIndex]['host'])
-            argpos += 1
+            arg_pos += 1
         elif option == 'mediaserver' or option == '-m':
-            mediaIndex = int(argv[argpos])
-            argpos += 1
+            mediaIndex = int(argv[arg_pos])
+            arg_pos += 1
         else:
             print("unknown option --{0}".format(option))
             usage(argv)
@@ -685,21 +685,21 @@ def run_main():
         uc = UpnpCommand(quick_access['zones'][0]['host'])
 
     uc_media = UpnpCommand(quick_access['mediaserver'][mediaIndex]['location'])
-    operation = argv[argpos]
-    argpos += 1
+    operation = argv[arg_pos]
+    arg_pos += 1
     result = None
 
     if operation == 'play':
         udn = quick_access['mediaserver'][mediaIndex]['udn']
         transport_data = dict()
-        browseresult = uc_media.browsechildren(argv[argpos])
+        browseresult = uc_media.browsechildren(argv[arg_pos])
         if browseresult is None:
-            browseresult = uc_media.browse(argv[argpos])
-            transport_data['CurrentURI'] = RfCmd.build_dlna_play_single(udn, "urn:upnp-org:serviceId:ContentDirectory", argv[argpos])
+            browseresult = uc_media.browse(argv[arg_pos])
+            transport_data['CurrentURI'] = RfCmd.build_dlna_play_single(udn, "urn:upnp-org:serviceId:ContentDirectory", argv[arg_pos])
         else:
             transport_data['CurrentURI'] = RfCmd.build_dlna_play_container(udn, "urn:upnp-org:serviceId:ContentDirectory",
-                                                                     argv[argpos])
-        print("URI", argv[argpos], transport_data['CurrentURI'])
+                                                                     argv[arg_pos])
+        print("URI", argv[arg_pos], transport_data['CurrentURI'])
         transport_data['CurrentURIMetaData'] = '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:raumfeld="urn:schemas-raumfeld-com:meta-data/raumfeld"><container></container></DIDL-Lite>'
         uc.set_transport_uri(transport_data)
         result = 'ok'
@@ -713,24 +713,24 @@ def run_main():
         result = uc.previous()
     elif operation == 'roomgetinfo':
         if device_format == 'udn':
-            udn = argv[argpos]
+            udn = argv[arg_pos]
         else:
-            udn = RfCmd.get_room_udn(argv[argpos])
+            udn = RfCmd.get_room_udn(argv[arg_pos])
         result = RfCmd.get_room_info(uc, udn)
     elif operation == 'volume' or operation == 'setvolume':
         if device_format == 'udn':
             for renderer in quick_access['renderer']:
-                if renderer['udn'] == argv[argpos]:
+                if renderer['udn'] == argv[arg_pos]:
                     host = urllib3.util.parse_url(renderer['location'])
                     uc = UpnpCommand(host.netloc)
-            argpos += 1
-            result = uc.set_volume_by_udn(argv[argpos])
+            arg_pos += 1
+            result = uc.set_volume_by_udn(argv[arg_pos])
         else:
-            result = uc.set_volume(argv[argpos])
+            result = uc.set_volume(argv[arg_pos])
     elif operation == 'getvolume':
         if device_format == 'udn':
             for renderer in quick_access['renderer']:
-                if renderer['udn'] == argv[argpos]:
+                if renderer['udn'] == argv[arg_pos]:
                     host = urllib3.util.parse_url(renderer['location'])
                     uc = UpnpCommand(host.netloc)
             result = uc.get_volume_by_udn(format)
@@ -738,76 +738,76 @@ def run_main():
             result = uc.get_volume(format)
     elif operation == 'roomgetvolume':
         if device_format == 'udn':
-            udn = argv[argpos]
+            udn = argv[arg_pos]
         else:
-            udn = RfCmd.get_room_udn(argv[argpos])
+            udn = RfCmd.get_room_udn(argv[arg_pos])
         result = uc.get_room_volume(udn)
     elif operation == 'roomsetvolume' or operation == 'roomvolume':
         if device_format == 'udn':
-            udn = argv[argpos]
+            udn = argv[arg_pos]
         else:
-            udn = RfCmd.get_room_udn(argv[argpos])
-        argpos += 1
-        result = uc.set_room_volume(udn, argv[argpos])
+            udn = RfCmd.get_room_udn(argv[arg_pos])
+        arg_pos += 1
+        result = uc.set_room_volume(udn, argv[arg_pos])
     elif operation == 'mute' or operation == 'setmute':
-        result = uc.set_mute(argv[argpos])
+        result = uc.set_mute(argv[arg_pos])
     elif operation == 'getmute':
         result = uc.get_mute(format)
     elif operation == 'roomgetmute':
         if device_format == 'udn':
-            udn = argv[argpos]
+            udn = argv[arg_pos]
         else:
-            udn = RfCmd.get_room_udn(argv[argpos])
+            udn = RfCmd.get_room_udn(argv[arg_pos])
         result = uc.get_room_mute(udn)
     elif operation == 'roomsetmute':
         if device_format == 'udn':
-            udn = argv[argpos]
+            udn = argv[arg_pos]
         else:
-            udn = RfCmd.get_room_udn(argv[argpos])
-        argpos += 1
-        result = uc.set_room_mute(udn, argv[argpos])
+            udn = RfCmd.get_room_udn(argv[arg_pos])
+        arg_pos += 1
+        result = uc.set_room_mute(udn, argv[arg_pos])
     elif operation == 'roomgeteq':
         if device_format == 'udn':
-            udn = argv[argpos]
+            udn = argv[arg_pos]
         else:
-            udn = RfCmd.get_room_udn(argv[argpos])
+            udn = RfCmd.get_room_udn(argv[arg_pos])
         location = RfCmd.get_device_location_by_udn(udn)
         urc = UpnpCommand(location)
         result = urc.get_filter(format)
     elif operation == 'roomseteq':
         if device_format == 'udn':
-            udn = argv[argpos]
+            udn = argv[arg_pos]
         else:
-            udn = RfCmd.get_room_udn(argv[argpos])
+            udn = RfCmd.get_room_udn(argv[arg_pos])
         location = RfCmd.get_device_location_by_udn(udn)
         urc = UpnpCommand(location)
-        result = urc.set_filter(argv[argpos + 1], argv[argpos + 2], argv[argpos + 3])
+        result = urc.set_filter(argv[arg_pos + 1], argv[arg_pos + 2], argv[arg_pos + 3])
     elif operation == 'roomgetbalance':
         if device_format == 'udn':
-            udn = argv[argpos]
+            udn = argv[arg_pos]
         else:
-            udn = RfCmd.get_room_udn(argv[argpos])
+            udn = RfCmd.get_room_udn(argv[arg_pos])
         location = RfCmd.get_device_location_by_udn(udn)
         urc = UpnpCommand(location)
         result = urc.get_balance(format)
     elif operation == 'roomsetbalance':
         if device_format == 'udn':
-            udn = argv[argpos]
+            udn = argv[arg_pos]
         else:
-            udn = RfCmd.get_room_udn(argv[argpos])
+            udn = RfCmd.get_room_udn(argv[arg_pos])
         location = RfCmd.get_device_location_by_udn(udn)
         urc = UpnpCommand(location)
-        result = urc.set_balance(argv[argpos+1])
+        result = urc.set_balance(argv[arg_pos+1])
     elif operation == 'standby':
-        state = argv[argpos]
-        argpos += 1
-        while argpos < len(argv):
-            udn = RfCmd.get_room_udn(argv[argpos])
+        state = argv[arg_pos]
+        arg_pos += 1
+        while arg_pos < len(argv):
+            udn = RfCmd.get_room_udn(argv[arg_pos])
             if udn is None:
-                print("unknown room "+argv[argpos])
+                print("unknown room "+argv[arg_pos])
             else:
                 raumfeld_host_device.set_room_standby(str(udn), state)
-            argpos += 1
+            arg_pos += 1
     elif operation == 'position':
         results = uc.get_position_info()
         if format == 'json':
@@ -822,22 +822,22 @@ def run_main():
             result += '\n'
     elif operation == 'seek':
         #check argv[argpos] if contains :
-        result = uc.seek(argv[argpos])
+        result = uc.seek(argv[arg_pos])
     elif operation == 'wait':
-        result = RfCmd.wait_operation(uc, argv[argpos])
+        result = RfCmd.wait_operation(uc, argv[arg_pos])
     elif operation == 'fade':
-        result = RfCmd.fade_operation(uc, int(argv[argpos]), int(argv[argpos+1]), int(argv[argpos+2]))
+        result = RfCmd.fade_operation(uc, int(argv[arg_pos]), int(argv[arg_pos+1]), int(argv[arg_pos+2]))
     elif operation == 'createzone':
         rooms = set()
         result = "zone creation adding rooms:\n"
-        while argpos < len(argv):
+        while arg_pos < len(argv):
             if device_format == 'udn':
-                udn = argv[argpos]
+                udn = argv[arg_pos]
             else:
-                udn = RfCmd.get_room_udn(argv[argpos])
+                udn = RfCmd.get_room_udn(argv[arg_pos])
             result += "{0}'\n".format(str(udn))
             rooms.add(str(udn))
-            argpos += 1
+            arg_pos += 1
         raumfeld_host_device.create_zone_with_rooms(rooms)
         sleep(2)
         RfCmd.discover()
@@ -845,38 +845,38 @@ def run_main():
         zone_udn = quick_access['zones'][zoneIndex]['udn']
         rooms = set()
         result = "zone creation adding rooms:\n"
-        while argpos < len(argv):
+        while arg_pos < len(argv):
             if device_format == 'udn':
-                udn = argv[argpos]
+                udn = argv[arg_pos]
             else:
-                udn = RfCmd.get_room_udn(argv[argpos])
+                udn = RfCmd.get_room_udn(argv[arg_pos])
             result += "{0}'\n".format(str(udn))
             rooms.add(str(udn))
-            argpos += 1
+            arg_pos += 1
         raumfeld_host_device.add_rooms_to_zone(zone_udn, rooms)
         sleep(2)
         RfCmd.discover()
     elif operation == 'drop':
         result = "drop rooms from zone:\n"
-        while argpos < len(argv):
+        while arg_pos < len(argv):
             if device_format == 'udn':
-                udn = argv[argpos]
+                udn = argv[arg_pos]
             else:
-                udn = RfCmd.get_room_udn(argv[argpos])
+                udn = RfCmd.get_room_udn(argv[arg_pos])
             result += str(raumfeld_host_device.drop_room(str(udn)))
-            argpos += 1
+            arg_pos += 1
         sleep(2)
         RfCmd.discover()
     elif operation == 'browse':
-        if argv[argpos].endswith('/*'):
-            result = uc_media.browse_recursive_children(argv[argpos][:-2], 3, format)
+        if argv[arg_pos].endswith('/*'):
+            result = uc_media.browse_recursive_children(argv[arg_pos][:-2], 3, format)
         else:
-            result = uc_media.browse_recursive_children(argv[argpos], 0, format)
+            result = uc_media.browse_recursive_children(argv[arg_pos], 0, format)
     elif operation == 'browseinfo':
-        results = uc_media.browse(argv[argpos])
+        results = uc_media.browse(argv[arg_pos])
         result = RfCmd.get_didl_extract(results['Result'], format)
     elif operation == 'search':
-        result = uc_media.search(argv[argpos], argv[argpos+1], format)
+        result = uc_media.search(argv[arg_pos], argv[arg_pos+1], format)
     elif operation == 'rooms':
         result = RfCmd.get_rooms(verbose, format)
         result = result[:-1]
@@ -906,7 +906,7 @@ def run_main():
         result = RfCmd.get_play_info(verbose, format)
         result = result[:-1]
     elif operation == 'ssh':
-        combined_args = " ".join(argv[argpos:])
+        combined_args = " ".join(argv[arg_pos:])
         result = single_device_command(target_device, combined_args)
     else:
         usage(argv)
