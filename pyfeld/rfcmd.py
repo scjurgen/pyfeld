@@ -373,37 +373,43 @@ class RfCmd:
                     maxsize = len(zone['name'])
         maxsize += 2
         result_list = list()
-        result_list.append(["Zone", "Vol", "Track", "Length", "Pos", "Src", "BR", "Src", "Track title", "Track Info"])
+        header_list = ["Zone", "Vol", "Track", "Length", "Pos", "Src", "BR", "Src", "Track title", "Track Info"]
+        result_list.append(header_list)
         for zone in quick_access['zones']:
             if zone['rooms'] is not None:
                 single_result = list()
-                uc = UpnpCommand(zone['host'])
-                single_result.append(zone['name'])
-                single_result.append(uc.get_volume())
-                results = uc.get_position_info()
-                single_result.append(str(results['Track']))
-                single_result.append(str(results['TrackDuration']))
-                single_result.append(str(results['AbsTime']))
-                if 'DIDL-Lite' in results['TrackMetaData']:
-                    didlinfo = DidlInfo(results['TrackMetaData'], True).get_items()
-                    single_result.append(didlinfo['resSourceType'])
-                    single_result.append(didlinfo['resBitrate'])
-                    single_result.append(didlinfo['resSourceName'])
-                    single_result.append(didlinfo['title'])
+                if zone['host'] == "None":
+                    single_result.append(zone['name'])
+                    for i in range(len(header_list)-1):
+                        single_result.append("-")
                 else:
-                    single_result.append("-")
-                    single_result.append("-")
-                    single_result.append("-")
-                    single_result.append("-")
+                    uc = UpnpCommand(zone['host'])
+                    single_result.append(zone['name'])
+                    single_result.append(uc.get_volume())
+                    results = uc.get_position_info()
+                    single_result.append(str(results['Track']))
+                    single_result.append(str(results['TrackDuration']))
+                    single_result.append(str(results['AbsTime']))
+                    if 'DIDL-Lite' in results['TrackMetaData']:
+                        didlinfo = DidlInfo(results['TrackMetaData'], True).get_items()
+                        single_result.append(didlinfo['resSourceType'])
+                        single_result.append(didlinfo['resBitrate'])
+                        single_result.append(didlinfo['resSourceName'])
+                        single_result.append(didlinfo['title'])
+                    else:
+                        single_result.append("-")
+                        single_result.append("-")
+                        single_result.append("-")
+                        single_result.append("-")
 
-                media_info = uc.get_media_info()
-                try:
-                    if 'CurrentURIMetaData' in media_info:
-                        didlinfo = DidlInfo(media_info['CurrentURIMetaData']).get_items()
-                        media = didlinfo['title']
-                        single_result.append(media)
-                except:
-                    single_result.append("-")
+                    media_info = uc.get_media_info()
+                    try:
+                        if 'CurrentURIMetaData' in media_info:
+                            didlinfo = DidlInfo(media_info['CurrentURIMetaData']).get_items()
+                            media = didlinfo['title']
+                            single_result.append(media)
+                    except:
+                        single_result.append("-")
                 result_list.append(single_result)
         if format == 'json':
             result = json.dumps(result_list, sort_keys=True, indent=2) + "\n"
