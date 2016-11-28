@@ -232,17 +232,21 @@ class UpnpCommand:
     """
     def get_setting(self, setting_name, output_format='plain'):
         xml_root = self.device_send_rendering("GetDeviceSetting", '<InstanceID>0</InstanceID>' +
-                                              '<Name>' + str(setting_name) + '</Name>'
-                                           )
+                                              '<Name>' + str(setting_name) + '</Name>')
         dict_result = XmlHelper.xml_extract_dict(xml_root, ['Value'])
         if output_format == 'json':
             return '{ "Value": "' + dict_result['Value'] + '"}'
         else:
             return dict_result['Value']
 
+    def set_setting(self, setting_name, value):
+        xml_root = self.device_send_rendering("SetDeviceSetting", '<InstanceID>0</InstanceID>' +
+                                              '<Name>' + str(setting_name) + '</Name>' +
+                                              '<Value>' + str(value) + '</Value>')
+        return xml_root.toprettyxml()
+
     def get_filter(self, output_format='plain'):
-        xml_root = self.device_send_rendering("GetFilter", '<InstanceID>0</InstanceID>'
-                                           )
+        xml_root = self.device_send_rendering("GetFilter", '<InstanceID>0</InstanceID>')
         dict_result = XmlHelper.xml_extract_dict(xml_root, ['LowDB', 'MidDB', 'HighDB'])
         if output_format == 'json':
             return '{ "LowDB": "'+dict_result['LowDB'] + '",  "MidDB": "'+dict_result['MidDB'] + '",  "HighDB": "'+dict_result['HighDB'] + '"}'
@@ -251,11 +255,11 @@ class UpnpCommand:
 
     def set_filter(self, valueLow, valueMid, valueHigh):
         xml_root = self.device_send_rendering("SetFilter",
-                                           '<InstanceID>0</InstanceID><Channel>Master</Channel>' +
-                                           '<LowDB>' + str(valueLow) + '</LowDB>' +
-                                           '<MidDB>' + str(valueMid) + '</MidDB>' +
-                                           '<HighDB>' + str(valueHigh) + '</HighDB>'
-                                           )
+                                               '<InstanceID>0</InstanceID><Channel>Master</Channel>' +
+                                               '<LowDB>' + str(valueLow) + '</LowDB>' +
+                                               '<MidDB>' + str(valueMid) + '</MidDB>' +
+                                               '<HighDB>' + str(valueHigh) + '</HighDB>'
+                                              )
         return None
 
     def get_balance(self, output_format='plain'):
