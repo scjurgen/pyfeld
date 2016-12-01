@@ -2,6 +2,8 @@
 from __future__ import unicode_literals
 
 import json
+from time import time
+
 import requests
 import sys
 import cgi 
@@ -44,7 +46,9 @@ class UpnpCommand:
                    'Content-Length': str(len(body)),
                    'SOAPAction': '"urn:schemas-upnp-org:service:'+control_name+':1#'+action+'"'}
         try:
+            t = time()
             response = requests.post(control_url, data=body, headers=headers, verify=False)
+            print("time needed = ", time() - t)
             if response.status_code < 300:
                 if self.verbose:
                     print(response.content)
@@ -292,22 +296,22 @@ class UpnpCommand:
         result = XmlHelper.xml_extract_dict(xml_root, ['Result', 'TotalMatches', 'NumberReturned'])
         return self.scan_browse_result(result, 0, format)
 
-    def browse(self, path):
+    def browse(self, path, startIndex=0, requestCount=0):
         browse_data = "<ObjectID>" + path +"</ObjectID>" \
             + "<BrowseFlag>BrowseMetadata</BrowseFlag>" \
             + "<Filter>*</Filter>" \
-            + "<StartingIndex>0</StartingIndex>" \
-            + "<RequestedCount>0</RequestedCount>" \
+            + "<StartingIndex>" + str(startIndex) + "</StartingIndex>" \
+            + "<RequestedCount>" + str(requestCount) + "</RequestedCount>" \
             + "<SortCriteria>dc:title</SortCriteria>"
         xml_root = self.host_send_contentdirectory("Browse", browse_data)
         return XmlHelper.xml_extract_dict(xml_root, ['Result', 'TotalMatches', 'NumberReturned'])
 
-    def browsechildren(self, path):
+    def browsechildren(self, path, startIndex=0, requestCount=0):
         browse_data = "<ObjectID>" + path + "</ObjectID>" \
             + "<BrowseFlag>BrowseDirectChildren</BrowseFlag>" \
             + "<Filter>*</Filter>" \
-            + "<StartingIndex>0</StartingIndex>" \
-            + "<RequestedCount>0</RequestedCount>" \
+            + "<StartingIndex>" + str(startIndex) + "</StartingIndex>" \
+            + "<RequestedCount>" + str(requestCount) + "</RequestedCount>" \
             + "<SortCriteria>dc:title</SortCriteria>"
         xml_root = self.host_send_contentdirectory("Browse", browse_data)
         if xml_root is None:
@@ -355,12 +359,12 @@ class UpnpCommand:
             s += "]"
             return s
 
-    def browse_recursive_children(self, path, level=3, output_format='plain'):
+    def browse_recursive_children(self, path, level=3, output_format='plain', startIndex=0, requestCount=0):
         if int(level) < 0:
             return "error on level < 0"
-        result = self.browsechildren(path)
+        result = self.browsechildren(path, startIndex, requestCount)
         if result is None:
-            result = self.browse(path)
+            result = self.browse(path, startIndex, requestCount)
 
         if len(result) == 0:
             return ""

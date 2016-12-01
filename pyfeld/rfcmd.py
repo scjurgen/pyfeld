@@ -21,7 +21,7 @@ from pyfeld.getRaumfeld import RaumfeldDeviceSettings
 from pyfeld.raumfeldHandler import RaumfeldHandler
 from pyfeld.didlInfo import DidlInfo
 
-version = "0.9.7"
+version = "0.9.8"
 
 quick_access = dict()
 raumfeld_host_device = None
@@ -888,10 +888,16 @@ def run_main():
         sleep(2)
         RfCmd.discover()
     elif operation == 'browse':
+        startIndex = 0
+        requestCount = 0
+        if len(sys.argv) > arg_pos+2:
+            startIndex =  int(argv[arg_pos+1])
+            requestCount = int(argv[arg_pos+2])
+            print(startIndex, requestCount)
         if argv[arg_pos].endswith('/*'):
-            result = uc_media.browse_recursive_children(argv[arg_pos][:-2], 3, format)
+            result = uc_media.browse_recursive_children(argv[arg_pos][:-2], 3, format, startIndex, requestCount)
         else:
-            result = uc_media.browse_recursive_children(argv[arg_pos], 0, format)
+            result = uc_media.browse_recursive_children(argv[arg_pos], 0, format, startIndex, requestCount)
     elif operation == 'browseinfo':
         results = uc_media.browse(argv[arg_pos])
         result = RfCmd.get_didl_extract(results['Result'], format)
