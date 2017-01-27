@@ -9,6 +9,7 @@ from pyfeld.getRaumfeld import RaumfeldDeviceSettings
 
 class DiscoverByHttp:
     def __init__(self):
+        self.found_ip = None
         local_ip = RaumfeldDeviceSettings.get_local_ip_address()
         decomposed = local_ip.split(".")
         self.processes = list()
@@ -44,6 +45,7 @@ class DiscoverByHttp:
             #print("Request for '%s' failed: %s" % (url, e))
 
     def found_IP(self):
+
         return self.found_ip
 
 if __name__ == '__main__':

@@ -399,6 +399,9 @@ class RaumfeldHandler:
     def nmap_fallback(self):
         db = DiscoverByHttp()
         self.found_protocol_ip = db.found_IP()
+        if self.found_protocol_ip is None:
+            print("No host found: switched on? available in raumfeld app? Crashed?")
+            exit(1)
         self.reprocess()
         return 0
 
