@@ -14,11 +14,18 @@ from pyfeld.xmlHelper import XmlHelper
 from pyfeld.didlInfo import DidlInfo
 
 
+user_agent = "xrf/1.0"
+
 class UpnpCommand:
 
     def __init__(self, host):
         self.host = host
         self.verbose = False
+
+    @staticmethod
+    def overwrite_user_agent(new_user_agent):
+        global user_agent
+        user_agent = new_user_agent
 
     def host_send(self, action, control_path, control_name, action_args):
 
@@ -40,11 +47,13 @@ class UpnpCommand:
         body += '</SOAP-ENV:Envelope>'
         if self.verbose:
             print(body)
+        global user_agent
         headers = {'Host': host_name,
-                   'User-Agent': 'xrf/1.0',
+                   'User-Agent': user_agent,
                    'Content-Type': 'text/xml; charset="utf-8"',
                    'Content-Length': str(len(body)),
                    'SOAPAction': '"urn:schemas-upnp-org:service:'+control_name+':1#'+action+'"'}
+        print(str(headers))
         try:
             t = time()
             response = requests.post(control_url, data=body, headers=headers, verify=False)
@@ -62,6 +71,7 @@ class UpnpCommand:
             if self.verbose:
                 print("warning! host send error {0}".format(e))
         return None
+
 
     def device_send_rendering(self, action, action_args):
         return self.host_send(action,

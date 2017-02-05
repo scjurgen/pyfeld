@@ -448,7 +448,7 @@ class RaumfeldHandler:
 
     def publish_state(self):
         string_state = self.get_state()
-        print(str(string_state))
+        print(str(string_state.encode('utf-8')))
 
     def get_active_zones(self):
         return self.active_zones

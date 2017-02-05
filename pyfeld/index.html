@@ -1,0 +1,355 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Equalizer v0.0.3</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"
+            integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"
+          integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+          integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+            integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+            crossorigin="anonymous"></script>
+
+    <script src="js.cookie.js"></script>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.1/css/bootstrap-slider.min.css"
+          rel="stylesheet"
+          integrity="sha384-rQ38XKf1GydLD0P5zTVFOSBl39EQXsdZgQPPDPJf7zu5Evt/qUhjcPD14lu92yXz" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.1/bootstrap-slider.min.js"
+            integrity="sha384-bo87nVCu1LraOZJXkZOEjOkGf9nDtu2oF5ADHQSm4GEA4NtovJdd/Tgj41YrU/AK"
+            crossorigin="anonymous"></script>
+
+
+    <script>
+        var sendTimeOut = 0;
+        function toPercentage(val)
+        {
+            var dbVal = parseFloat(val) + 12.0;
+            var percVal = Math.round(dbVal*100.0/24.0);
+            if (percVal < 0)
+                percVal = 0;
+            if (percVal >100)
+                percVal = 100;
+            return percVal.toString();
+        }
+        function toFrequency(val)
+        {
+            var fVal = Math.round(parseFloat(val));
+            if (fVal < 10)
+                fVal = 10;
+            if (fVal >20000)
+                fVal = 20000;
+            return fVal.toString();
+        }
+        function toQuality(val)
+        {
+            var qVal = Math.round(parseFloat(val));
+            if (qVal < 0)
+                qVal = 0;
+            if (qVal >100)
+                qVal = 100;
+            return qVal.toString();
+        }
+        var eqItems = [
+            {
+                "type" : "db",
+                "scale" : "linear",
+                "slider": "#sliderLowDB",
+                "sliderValue": "#sliderValLowDB",
+                "parameter": "lowDB",
+                "ifParameter": "lo",
+                "min": -12,
+                "max": 12
+            },
+            {
+                "type" : "db",
+                "scale" : "linear",
+                "slider": "#sliderMidDB",
+                "sliderValue": "#sliderValMidDB",
+                "parameter": "midDB",
+                "ifParameter": "mi",
+                "min": -12,
+                "max": 12
+            },
+            {
+                "type" : "db",
+                "scale" : "linear",
+                "slider": "#sliderHighDB",
+                "sliderValue": "#sliderValHighDB",
+                "parameter": "highDB",
+                "ifParameter": "hi",
+                "min": -12,
+                "max": 12
+            },
+            {
+                "type" : "db",
+                "scale" : "linear",
+                "slider": "#sliderMidLowDB",
+                "sliderValue": "#sliderValMidLowDB",
+                "parameter": "midLowDB",
+                "ifParameter": "mi-lo",
+                "min": -12,
+                "max": 12
+            },
+            {
+                "type" : "frequency",
+                "scale" : "logarithmic",
+                "slider": "#sliderMidLowF",
+                "sliderValue": "#sliderValMidLowF",
+                "parameter": "midLowF",
+                "ifParameter": "mi-lo-f",
+                "min": 50,
+                "max": 15000
+            },
+            {
+                "type" : "quality",
+                "scale" : "logarithmic",
+                "slider": "#sliderMidLowQ",
+                "sliderValue": "#sliderValMidLowQ",
+                "parameter": "midLowQ",
+                "ifParameter": "mi-lo-q",
+                "min": 0.1,
+                "max": 10.0
+            } ,
+            {
+                "type" : "db",
+                "scale" : "linear",
+                "slider": "#sliderMidHighDB",
+                "sliderValue": "#sliderValMidHighDB",
+                "parameter": "midHighDB",
+                "ifParameter": "mi-hi",
+                "min": -12,
+                "max": 12
+            },
+            {
+                "type" : "frequency",
+                "scale" : "logarithmic",
+                "slider": "#sliderMidHighF",
+                "sliderValue": "#sliderValMidHighF",
+                "parameter": "midHighF",
+                "ifParameter": "mi-hi-f",
+                "min": 50,
+                "max": 15000
+            },
+            {
+                "type" : "quality",
+                "scale" : "logarithmic",
+                "slider": "#sliderMidHighQ",
+                "sliderValue": "#sliderValMidHighQ",
+                "parameter": "midHighQ",
+                "ifParameter": "mi-hi-q",
+                "min": 0.1,
+                "max": 10.0
+            }
+        ];
+        var selectedDevice = Cookies.get("lastudn");
+        console.log("Selected Device "+selectedDevice);
+        $(document).ready(function () {
+            console.log("ready to go");
+
+            $("#deviceSelectId").change(function () {
+                var udn = this.value;
+                selectedDevice = udn;
+                console.log("New Selected Device "+selectedDevice);
+                Cookies.set("lastudn", udn, { expires: 364 });
+                showEQSettings(udn);
+            });
+
+            eqItems.forEach(function (obj) {
+                val = Cookies.get(selectedDevice + obj.parameter);
+                console.log("get cookie value " + selectedDevice + obj.parameter + "=" + val);
+                $(obj.sliderValue).text(val);
+                $(obj.slider).slider({
+                    min: obj.min,
+                    max: obj.max,
+                    value: val,
+                    precision: 5,
+                    step: 0.1,
+                    scale: obj.scale
+                });
+                $(obj.slider).on("slide", function (slideEvt) {
+                    $(obj.sliderValue).text(slideEvt.value);
+                    if (sendTimeOut)
+                        clearTimeout(sendTimeOut);
+                    sendTimeOut = setTimeout(function() { sendEq();},100);
+                    Cookies.set(selectedDevice + obj.parameter, slideEvt.value, { expires: 364 });
+
+                    console.log("set cookie value " + selectedDevice + obj.parameter + "=" + val);
+                });
+            });
+        });
+
+        function showEQSettings(udn) {
+            eqItems.forEach(function (obj) {
+                console.log(obj.slider);
+                val = Cookies.get(udn + obj.parameter);
+                console.log("get cookie value " + udn + obj.parameter + "=" + val);
+                $(obj.sliderValue).text(val);
+                $(obj.slider).slider('setValue', val);
+            });
+        }
+
+        var getList = function (xml) {
+            console.log("got my device list");
+            items = "";
+            count += 1;
+            test = $("#datastuff");
+            // var option = $('<option></option>').attr("value", "option value").text("Text");
+            // $("#selectId").empty().append(option);
+            var $el = $("#deviceSelectId");
+            $el.empty();
+            $(xml).find("device").each(function () {
+                if ($(this).attr('type') == "urn:schemas-upnp-org:device:MediaRenderer:1") {
+                    var name = $(this).text();
+                    var udn = $(this).attr('udn');
+                    $el.append($("<option></option>").attr("value", udn).text(name));
+                }
+            });
+            $el.val(selectedDevice);
+            test.html(items);
+        };
+        count = 0;
+        $.ajax({
+            url: "/listDevices?deviceType=urn:schemas-upnp-org:device:MediaRenderer:1",
+            cache: false,
+            contentType: "application/xml",
+            type: "GET",
+            success: getList,
+            dataType: "xml",
+            error: function (request, textStatus, errorThrown) {
+                        console.log("hello request" + request)
+                        console.log("" + textStatus)
+                        console.log("" + errorThrown)
+                    }
+        });
+
+        (function poll() {
+            setTimeout(function () {
+                $.ajax({
+                    url: "/listDevices?deviceType=urn:schemas-upnp-org:device:MediaRenderer:1",
+                    type: "GET",
+                    contentType: "application/xml",
+                    success: getList,
+                    dataType: "xml",
+                    complete: poll,
+                    timeout: 6000
+                })
+            }, 60000);
+        })();
+
+        function sendEq() {
+            var request = "udn="+selectedDevice;
+            eqItems.forEach(function (obj) {
+                obj.type == 'db';
+                var val = $(obj.slider).data('slider').getValue();
+                if (obj.type == 'db')
+                {
+                    val = toPercentage(val);
+                }else if (obj.type == 'frequency')
+                {
+                    val = toFrequency(val);
+                }else if (obj.type == 'quality')
+                {
+                    val = toQuality(val);
+                }
+                request += "&"+obj.ifParameter+"=" + val;
+            });
+            console.log(request);
+            $.ajax({
+                type: "GET",
+                url: "/SetEqualizer?" + request,
+                success: function (result) {
+                    $("#action").text(result);
+                }
+            });
+        }
+    </script>
+
+</head>
+<body>
+<div>
+    <h1>Equalizer</h1>
+    <div class="panel panel-default">
+        <div class="panel-heading">Devices</div>
+        <div class="panel-body">
+            <select id="deviceSelectId" onselect=""></select><br/><br/>
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading">Equalizer settings</div>
+        <div class="panel-body">
+            <div class="container">
+                <div class="row" >
+                    <div  class="col-sm-2">Low</div>
+                    <div  class="col-sm-8"><input style="width:100%" id="sliderLowDB" type="text"/></div>
+                    <div  class="col-sm-2"><span id="sliderValLowDB">0</span></div>
+                </div>
+                <div class="row" >
+                    <div  class="col-sm-2">Mid</div>
+                    <div  class="col-sm-8"><input style="width:100%" id="sliderMidDB" type="text"/></div>
+                    <div  class="col-sm-2"><span id="sliderValMidDB">0</span></div>
+                </div>
+                <div class="row" >
+                    <div  class="col-sm-2">High</div>
+                    <div  class="col-sm-8"><input style="width:100%" id="sliderHighDB" type="text"/></div>
+                    <div  class="col-sm-2"><span id="sliderValHighDB">0</span></div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">-</div>
+                </div>
+                <div class="row" >
+                    <div  class="col-sm-2">MidLow</div>
+                    <div  class="col-sm-8"><input style="width:100%" id="sliderMidLowDB" type="text"/></div>
+                    <div  class="col-sm-2"><span id="sliderValMidLowDB">0</span></div>
+                </div>
+                <div class="row" >
+                    <div  class="col-sm-2">MidLow F</div>
+                    <div  class="col-sm-8"><input style="width:100%" id="sliderMidLowF" type="text"/></div>
+                    <div  class="col-sm-2"><span id="sliderValMidLowF">0</span></div>
+                </div>
+                <div class="row" >
+                    <div  class="col-sm-2">MidLow Q</div>
+                    <div  class="col-sm-8"><input style="width:100%" id="sliderMidLowQ" type="text"/></div>
+                    <div  class="col-sm-2"><span id="sliderValMidLowQ">0</span></div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">-</div>
+                </div>
+                <div class="row" >
+                    <div  class="col-sm-2">MidHigh</div>
+                    <div  class="col-sm-8"><input style="width:100%" id="sliderMidHighDB" type="text"/></div>
+                    <div  class="col-sm-2"><span id="sliderValMidHighDB">0</span></div>
+                </div>
+                <div class="row" >
+                    <div  class="col-sm-2">MidHigh F</div>
+                    <div  class="col-sm-8"><input style="width:100%" id="sliderMidHighF" type="text"/></div>
+                    <div  class="col-sm-2"><span id="sliderValMidHighF">0</span></div>
+                </div>
+                <div class="row" >
+                    <div  class="col-sm-2">MidHigh Q</div>
+                    <div  class="col-sm-8"><input style="width:100%" id="sliderMidHighQ" type="text"/></div>
+                    <div  class="col-sm-2"><span id="sliderValMidHighQ">0</span></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <p id="action"></p>
+</div>
+</body>
+</html>
+<script>
+
+</script>
