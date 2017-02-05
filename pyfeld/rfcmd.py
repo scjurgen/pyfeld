@@ -611,6 +611,9 @@ def run_main():
             verbose += 1
         elif option == '-vv':
             verbose += 2
+        elif option == 'user-agent':
+            UpnpCommand.overwrite_user_agent(argv[argpos])
+            argpos += 1
         elif option == 'help' or option == '-h':
             usage(argv)
             sys.exit(2)
