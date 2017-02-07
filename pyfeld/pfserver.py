@@ -1,29 +1,14 @@
 #!/usr/bin/env python3
 
-
 """
--> json
-
-GET /{where}/{identifier}/{command}/values
-
-where:=room|zone|udn|all
-identifier:=byname|udn|#
-command:=volume/eq/play
-values:=browsepath/#/
-
-GET /room/name/volume
-GET /zone/number/volume
-GET /udn/volume
-
-POST/GET /room/volume/#
-
-GET /browse/path --> json
-
+macronize rfcmd values
+create intelligent room name handling
+search deeper (create permutations of search string with typical errors, is there a google service)
 """
+
 
 import mimetypes
 import json
-import re
 import threading
 from concurrent.futures import thread
 
@@ -35,6 +20,7 @@ from http.server import BaseHTTPRequestHandler
 from datetime import time
 from time import sleep
 
+from pyfeld.upnpCommand import UpnpCommand
 from pyfeld.rfcmd import RfCmd
 
 
@@ -47,6 +33,94 @@ rewrite_pages = [  # const
         ['^/(.*)(html|ico|js|ttf|svg|woff|eot|otf|css|less|map).*$', './html/\\1\\2'],
         ['^/$', './html/index.html']
 ]
+
+
+"""
+handle a request
+current schemes
+/stop/{room}
+/searchandplay/{origin}/{name}/{room}
+/search/{origin}/{name}
+/play/station/{#}/{room}
+
+origin := radio | fm | usb |
+room := all | {defined rooms from RfCmd.get_rooms}. -> if no room given lastroom
+lastroom := room
+
+predefined search containers:
+0/RadioTime/local
+0/RadioTime/{etc.}
+0/My Music/Albums
+0/My Music/AllTracks
+0/My Music/Titles
+
+"""
+
+class Model:
+    def __init__(self):
+        self.data_dict = dict()
+
+    def set_state(self, key, value):
+        self.data_dict[key] = value
+
+    def get_state(self, key):
+        if key in self.data_dict:
+            return self.data_dict[key]
+        else:
+            return None
+
+    def get_states(self, key):
+        return self.data_dict
+
+    def get_info(self):
+        result = ""
+        for item in self.data_dict:
+            result += "\n" + item.first + ":" + item.second
+        return result
+
+
+model = Model()
+
+
+def search_and_play(origin, name, room):
+    """
+    /searchandplay/{origin}/{name}/{room}
+    :param origin:radio | my music | everywhere
+    :param name: searchname
+    :param room: target room to play
+    :return: textual description of playing item or "couldn't find searchname"
+    """
+    if room != '':
+        model.set_state('lastroom', room)
+    else:
+        room = model.get_state('lastroom')
+    return "Sorry! Couldn't find {0} in {1}".format(name, origin)
+
+def search_and_play(room, value):
+    if value != '':
+        uc = UpnpCommand(RfCmd.rfConfig['zones'][0]['host'])
+        udn = RfCmd.get_room_udn(room)
+        result = uc.set_room_volume(udn, value)
+        return result
+    else:
+        uc = UpnpCommand(RfCmd.rfConfig['zones'][0]['host'])
+        udn = RfCmd.get_room_udn(room)
+        result = uc.get_room_volume(udn, value, "json")
+        return result
+    return "Sorry! Couldn't find {0} in {1}".format(name, origin)
+
+def handle_path_request(path):
+    text_result = "Sorry! Did not understand what you are looking for!"
+    padded_path = path + "//////"
+    components = padded_path.split('/')
+    if components[1] == 'volume':
+        json_result, text_result = handle_volume(components[2], components[3])
+    if components[1] == 'searchandplay':
+        json_result, text_result = search_and_play(components[2], components[3], components[4])
+
+    results = {'textresponse': text_result}
+    return json.dumps(results, sort_keys=True, indent=2)
+
 
 class RequestHandler (BaseHTTPRequestHandler):
     def log_message(self, format, *args):
@@ -68,27 +142,6 @@ class RequestHandler (BaseHTTPRequestHandler):
         except Exception as e:
             print("handle_get_query error {0}".format(e))
 
-    def handle_button_query(self, param):
-        try:
-            output = '{"error":"possible"}'
-            cmd = param['cmd'][0]
-            if cmd in model.kv:
-                if 'value' in param:
-                    value = param['value'][0]
-                    model.set_value(cmd,value)
-                    output = json.dumps({cmd: value})
-                else:
-                    output = json.dumps({'error': 'parameter value missing'})
-            else:
-                self.page_not_found()
-                return
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(bytearray(output, 'UTF-8'))
-        except Exception as e:
-            print("handle_set_query error {0}".format(e))
-
     def handle_infos(self, type):
         try:
             if type == 'status':
@@ -101,112 +154,9 @@ class RequestHandler (BaseHTTPRequestHandler):
         except Exception as e:
             print("handle_get_query error {0}".format(e))
 
-    def handle_get(self, item):
-        try:
-            data = {item: model.get_value(item)}
-            output = json.dumps(data, sort_keys=False, indent=2)
-            self.send_json_response(output)
-        except Exception as e:
-            print("handle_get_query error {0}".format(e))
-
-    def handle_set(self, item, value):
-        try:
-            model.set_value(item, value)
-            output = json.dumps('{"result":"done"}', sort_keys=False, indent=2)
-            self.send_json_response(output)
-        except Exception as e:
-            print("handle_get_query error {0}".format(e))
-
-    def handle_get_query(self, param):
-        try:
-            cmd = param['cmd'][0]
-            if cmd in model.kv:
-                data = {cmd: model.get_value(cmd)}
-                output = json.dumps(data, sort_keys=False, indent=2)
-            elif cmd == 'info':
-                output = json.dumps(model.kv, sort_keys=False, indent=2)
-            else:
-                self.page_not_found()
-                return
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(bytearray(output, 'UTF-8'))
-        except Exception as e:
-            print("handle_get_query error {0}".format(e))
-
-    def do_PUT(self):
-        print("Put", self.path)
-        r = self.path.split('/')
-        print(r)
-
-    def do_POST(self):
-        print("Post", self.path)
-        try:
-            r = self.path.split('/')
-            if len(r) == 3:
-                if r[0] == 'button':
-                    self.handle_button(r)
-                elif r[0] == 'encoder':
-                    self.handle_encoder(r)
-                elif r[0] == 'reset':
-                    self.handle_reset(r)
-                else:
-                    self.page_not_found()
-                return
-        except Exception as e:
-            print("do_POST error {0}".format(e))
-
     def do_GET(self):
         try:
-            for pair in rewrite_pages:
-                key = pair[0]
-                replacement = pair[1]
-                if re.match(key, self.path):
-                    path = re.sub(key, replacement, self.path)
-                    try:
-                        print(path)
-                        output = open(path, 'rb').read()
-                        self.send_response(200)
-                        guessed_mime_type = mimetypes.guess_type(path, strict=False)
-                        print(path, guessed_mime_type)
-                        self.send_header("Content-type", guessed_mime_type)
-                        self.end_headers()
-                        self.wfile.write(output)
-                        return
-                    except Exception as e:
-                        print("Exception {0}".format(e))
-                        pass
-        except:
-            pass
-        try:
-            if self.path == './html/index.html':
-                try:
-                    self.send_response(200)
-                    self.send_header("Content-type", "text/html")
-                    self.end_headers()
-                    self.wfile.write(get_template('template.html'), 'UTF-8')
-                    return
-                except Exception as e:
-                    self.send_response(200)
-                    self.send_header("Content-type", "text/html")
-                    self.end_headers()
-                    output = "Rephrase your request, this is 404<br/>you asked for [" + str(self.path)+"]"
-                    self.wfile.write(bytearray(output, 'UTF-8'))
-                    return
-            else:
-                r = self.path.split('/')
-                if r[1] == 'status' or r[1] == 'rooms' or r[1] == 'zones':
-                    self.handle_infos(r[1])
-                elif r[1] in ['volume', 'indication']:
-                    if len(r) == 3:
-                        self.handle_set(r[1], r[2])
-                    else:
-                        self.handle_get(r[1])
-                else:
-                    self.page_not_found()
-                return
-            output = open("./html/" + self.path[1:], 'r').read()
+            output = handle_path_request(self.path)
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
@@ -222,18 +172,14 @@ class RequestHandler (BaseHTTPRequestHandler):
 
 
 def open_info_channel(server):
-    '''
-    connect to server
-    wait for commands on it
-    '''
-    s = socket()
+    pass
 
 def scan_raumfeld():
     while 1:
         print("discovery")
         RfCmd.discover()
         print("done")
-        sleep(60)
+        sleep(120)
 
 def run_server(port):
     threading.Thread(target=scan_raumfeld).start()
@@ -251,5 +197,6 @@ def get_local_ip_address():
     return s.getsockname()[0]
 
 if __name__ == "__main__":
-    run_server(29292)
+    uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
+    run_server(28282)
 

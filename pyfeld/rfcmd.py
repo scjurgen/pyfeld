@@ -23,7 +23,6 @@ from pyfeld.didlInfo import DidlInfo
 
 version = "0.9.8"
 
-quick_access = dict()
 raumfeld_host_device = None
 
 
@@ -37,20 +36,21 @@ class InfoList:
 
 
 class RfCmd:
+    rfConfig = dict()
 
     @staticmethod
     def get_raumfeld_infrastructure():
-        global quick_access, raumfeld_host_device
+        global raumfeld_host_device
         try:
             s = open(Settings.home_directory()+"/data.json", 'r').read()
-            quick_access = json.loads(s)
+            RfCmd.rfConfig = json.loads(s)
             """sanitize"""
-            for zone in quick_access['zones']:
+            for zone in RfCmd.rfConfig['zones']:
                 if not 'rooms' in zone:
                     zone['rooms'] = None
                 if not 'udn' in zone:
                     zone['udn'] = None
-            raumfeld_host_device = RaumfeldDeviceSettings(quick_access['host'])
+            raumfeld_host_device = RaumfeldDeviceSettings(RfCmd.rfConfig['host'])
         except Exception as err:
             print("get_raumfeld_infrastructure: Exception: {0}".format(err))
             return None
@@ -62,8 +62,7 @@ class RfCmd:
 
     @staticmethod
     def get_renderer_udn(renderer_name):
-        global quick_access
-        for zone in quick_access['zones']:
+        for zone in RfCmd.rfConfig['zones']:
             if zone['rooms'] is not None:
                 for room in zone['rooms']:
                     for renderer in room.get_renderer_list():
@@ -73,8 +72,7 @@ class RfCmd:
 
     @staticmethod
     def get_room_udn(room_name):
-        global quick_access
-        for zone in quick_access['zones']:
+        for zone in RfCmd.rfConfig['zones']:
             if zone['rooms'] is not None:
                 for room in zone['rooms']:
                     if room['name'] == room_name:
@@ -83,9 +81,8 @@ class RfCmd:
 
     @staticmethod
     def get_room_zone_index(room_name):
-        global quick_access
         index = 0
-        for zone in quick_access['zones']:
+        for zone in RfCmd.rfConfig['zones']:
             if zone['rooms'] is not None:
                 for room in zone['rooms']:
                     if room['name'] == room_name:
@@ -114,8 +111,7 @@ class RfCmd:
 
     @staticmethod
     def is_unassigned_room(roomName):
-        global quick_access
-        for zone in quick_access['zones']:
+        for zone in RfCmd.rfConfig['zones']:
             if zone['rooms'] is not None:
                 if zone['name'] == 'unassigned room':
                     for room in zone['rooms']:
@@ -126,10 +122,8 @@ class RfCmd:
 
     @staticmethod
     def get_unassigned_rooms(verbose, format):
-        global quick_access
-
         result = ""
-        for zone in quick_access['zones']:
+        for zone in RfCmd.rfConfig['zones']:
             if zone['rooms'] is not None:
                 if zone['name'] == 'unassigned room':
                     for room in zone['rooms']:
@@ -138,9 +132,8 @@ class RfCmd:
 
     @staticmethod
     def get_renderer(verbose, format):
-        global quick_access
         result = ""
-        for renderer in quick_access['renderer']:
+        for renderer in RfCmd.rfConfig['renderer']:
             if verbose == 2:
                 result += renderer['location'] + "\t"
             if verbose == 1:
@@ -155,8 +148,7 @@ class RfCmd:
 
     @staticmethod
     def map_ip_to_friendly_name(ip):
-        global quick_access
-        for zone in quick_access['zones']:
+        for zone in RfCmd.rfConfig['zones']:
             if zone['rooms'] is not None:
                 for room in zone['rooms']:
                     if RfCmd.get_pure_ip(room['location']) == ip:
@@ -168,8 +160,7 @@ class RfCmd:
 
     @staticmethod
     def map_udn_to_friendly_name(udn):
-        global quick_access
-        for zone in quick_access['zones']:
+        for zone in RfCmd.rfConfig['zones']:
             if zone['rooms'] is not None:
                 if zone['udn'] == udn:
                     return zone['name']
@@ -183,19 +174,18 @@ class RfCmd:
 
     @staticmethod
     def get_device_ips(verbose, format):
-        global quick_access
         result = ""
         ip_list = []
         host_is_set = False
-        for device in quick_access['devices']:
+        for device in RfCmd.rfConfig['devices']:
             ip_l = urllib3.util.parse_url(device['location'])
-            if ip_l.host == quick_access['host']:
+            if ip_l.host == RfCmd.rfConfig['host']:
                 ip_list.append(InfoList(ip_l.host, str(RfCmd.map_ip_to_friendly_name(ip_l.host)) + " <host>"))
                 host_is_set = True
             else:
                 ip_list.append(InfoList(ip_l.host, str(RfCmd.map_ip_to_friendly_name(ip_l.host))))
         if not host_is_set:
-            ip_list.append(InfoList(quick_access['host'], "<host>"))
+            ip_list.append(InfoList(RfCmd.rfConfig['host'], "<host>"))
         ip_list.sort(key=lambda x: x.sortItem, reverse=False)
         if format == 'json':
             return json.dumps(ip_list) + "\n"
@@ -215,8 +205,7 @@ class RfCmd:
 
     @staticmethod
     def get_device_location_by_udn(udn):
-        global quick_access
-        for zone in quick_access['zones']:
+        for zone in RfCmd.rfConfig['zones']:
             for room in zone['rooms']:
                 for renderer in room['room_renderers']:
                     if renderer['udn'] == udn:
@@ -230,10 +219,9 @@ class RfCmd:
 
     @staticmethod
     def get_rooms(verbose, format):
-        global quick_access
         result = ""
         room_list = []
-        for zone in quick_access['zones']:
+        for zone in RfCmd.rfConfig['zones']:
             for room in zone['rooms']:
                 if room is not None:
                     room_name = room['name']
@@ -316,20 +304,19 @@ class RfCmd:
 
     @staticmethod
     def get_info(verbose, format):
-        global quick_access
         if format == 'json':
-            return json.dumps(quick_access, sort_keys=True, indent=2) + "\n"
+            return json.dumps(RfCmd.rfConfig, sort_keys=True, indent=2) + "\n"
         else:
             i = 0
             result = ""
-            for media_server in quick_access['mediaserver']:
+            for media_server in RfCmd.rfConfig['mediaserver']:
                 if verbose >= 1:
                     result += "Mediaserver #{0} : {1}\n".format(i, media_server['udn'])
                 else:
                     result += "Mediaserver #{0}\n".format(i)
                 i += 1
             i = 0
-            for zone in quick_access['zones']:
+            for zone in RfCmd.rfConfig['zones']:
                 if verbose == 2:
                     result += "Zone #{0} : {1} : {2} -> {3}\n".format(i, zone['name'], str(zone['udn']), zone['host'])
                 elif verbose == 1:
@@ -357,10 +344,9 @@ class RfCmd:
 
     @staticmethod
     def get_play_info(verbose, format):
-        global quick_access
         result = ""
         maxsize = 10
-        for zone in quick_access['zones']:
+        for zone in RfCmd.rfConfig['zones']:
             if zone['rooms'] is not None:
                 if len(zone['name']) > maxsize:
                     maxsize = len(zone['name'])
@@ -368,7 +354,7 @@ class RfCmd:
         result_list = list()
         header_list = ["Zone", "Vol", "Track", "Length", "Pos", "Src", "BR", "Src", "Track title", "Track Info"]
         result_list.append(header_list)
-        for zone in quick_access['zones']:
+        for zone in RfCmd.rfConfig['zones']:
             if zone['rooms'] is not None:
                 single_result = list()
                 if zone['host'] == "None":
@@ -416,9 +402,9 @@ class RfCmd:
     def get_zone_info(format):
         result = ""
         if format == 'json':
-            result = json.dumps(quick_access['zones'], sort_keys=True, indent=2) + "\n"
+            result = json.dumps(RfCmd.rfConfig['zones'], sort_keys=True, indent=2) + "\n"
         else:
-            for zone in quick_access['zones']:
+            for zone in RfCmd.rfConfig['zones']:
                 if zone['rooms'] is not None:
                     if zone['name'] != "unassigned room":
                         result += zone['name']
@@ -488,18 +474,16 @@ class RfCmd:
 
     @staticmethod
     def find_renderer(name):
-        global quick_access
-        for renderer in quick_access['renderer']:
+        for renderer in RfCmd.rfConfig['renderer']:
             if name == renderer['name']:
                 return RfCmd.get_pure_ip(renderer['location'])
         return None
 
     @staticmethod
     def find_device(name):
-        global quick_access
         if name in '<host>':
-            return quick_access['host']
-        for device in quick_access['devices']:
+            return RfCmd.rfConfig['host']
+        for device in RfCmd.rfConfig['devices']:
             ip_l = urllib3.util.parse_url(device['location'])
             if str(RfCmd.map_ip_to_friendly_name(ip_l.host)) == name:
                 return ip_l.host
@@ -598,7 +582,6 @@ def single_device_command(ip, cmd):
 #TODO: this thing is ugly big and needs refactoring
 
 def run_main():
-    global quick_access
     argv = list()
     for arg in sys.argv:
         argv.append(arg)
@@ -643,25 +626,25 @@ def run_main():
             format = "json"
         elif option == 'discover' or option == '-d':
             RfCmd.discover()
-            uc = UpnpCommand(quick_access['zones'][zoneIndex]['host'])
-            if arg_pos == len(argv):
+            uc = UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
+            if argpos == len(argv):
                 print("done")
                 sys.exit(0)
         elif option == 'zonebyudn':
             found = False
-            for index, zone in enumerate(quick_access['zones']):
-                if argv[arg_pos] == zone['udn']:
+            for index, zone in enumerate(RfCmd.rfConfig['zones']):
+                if argv[argpos] == zone['udn']:
                     zoneIndex = index
-                    uc = UpnpCommand(quick_access['zones'][zoneIndex]['host'])
+                    uc = UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
                     found = True
             if not found:
                 print("Zoneudn {0} not found".format(argv[arg_pos]))
                 sys.exit(-1)
             arg_pos += 1
         elif option == 'zone' or option == '-z':
-            zoneIndex = int(argv[arg_pos])
-            uc = UpnpCommand(quick_access['zones'][zoneIndex]['host'])
-            arg_pos += 1
+            zoneIndex = int(argv[argpos])
+            uc = UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
+            argpos += 1
         elif option == 'zonewithroom' or option == '-r':
             roomName = argv[arg_pos]
             zoneIndex = RfCmd.get_room_zone_index(roomName)
@@ -674,8 +657,8 @@ def run_main():
             if RfCmd.is_unassigned_room(roomName):
                 print('error: room is unassigned: ' + roomName)
                 exit(-1)
-            uc = UpnpCommand(quick_access['zones'][zoneIndex]['host'])
-            arg_pos += 1
+            uc = UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
+            argpos += 1
         elif option == 'mediaserver' or option == '-m':
             mediaIndex = int(argv[arg_pos])
             arg_pos += 1
@@ -686,15 +669,15 @@ def run_main():
 
     if zoneIndex == -1:
         zoneIndex = 0
-        uc = UpnpCommand(quick_access['zones'][0]['host'])
+        uc = UpnpCommand(RfCmd.rfConfig['zones'][0]['host'])
 
-    uc_media = UpnpCommand(quick_access['mediaserver'][mediaIndex]['location'])
-    operation = argv[arg_pos]
-    arg_pos += 1
+    uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][mediaIndex]['location'])
+    operation = argv[argpos]
+    argpos += 1
     result = None
 
     if operation == 'play':
-        udn = quick_access['mediaserver'][mediaIndex]['udn']
+        udn = RfCmd.rfConfig['mediaserver'][mediaIndex]['udn']
         transport_data = dict()
         browseresult = uc_media.browsechildren(argv[arg_pos])
         if browseresult is None:
@@ -723,8 +706,8 @@ def run_main():
         result = RfCmd.get_room_info(uc, udn)
     elif operation == 'volume' or operation == 'setvolume':
         if device_format == 'udn':
-            for renderer in quick_access['renderer']:
-                if renderer['udn'] == argv[arg_pos]:
+            for renderer in RfCmd.rfConfig['renderer']:
+                if renderer['udn'] == argv[argpos]:
                     host = urllib3.util.parse_url(renderer['location'])
                     uc = UpnpCommand(host.netloc)
             arg_pos += 1
@@ -733,8 +716,8 @@ def run_main():
             result = uc.set_volume(argv[arg_pos])
     elif operation == 'getvolume':
         if device_format == 'udn':
-            for renderer in quick_access['renderer']:
-                if renderer['udn'] == argv[arg_pos]:
+            for renderer in RfCmd.rfConfig['renderer']:
+                if renderer['udn'] == argv[argpos]:
                     host = urllib3.util.parse_url(renderer['location'])
                     uc = UpnpCommand(host.netloc)
             result = uc.get_volume_by_udn(format)
@@ -865,7 +848,7 @@ def run_main():
         sleep(2)
         RfCmd.discover()
     elif operation == 'addtozone':
-        zone_udn = quick_access['zones'][zoneIndex]['udn']
+        zone_udn = RfCmd.rfConfig['zones'][zoneIndex]['udn']
         rooms = set()
         result = "zone creation adding rooms:\n"
         while arg_pos < len(argv):
