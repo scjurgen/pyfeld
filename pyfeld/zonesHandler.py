@@ -407,31 +407,6 @@ class ZonesHandler:
         lines = self.nmap_fallback()
         self.process_batch(lines, False)
         return 0
-        """
-        command = 'nmap --open -p 47365 ' + iprange
-        if self.verbose:
-            print("searching with command: " + command)
-        try:
-            process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        except Exception as e:
-            err_print("nmap: command failed:" + str(e))
-            syslog.syslog("command failed:" + str(e))
-            # should run a fallback now
-            lines = self.nmap_fallback()
-            self.process_batch(lines, False)
-            return 0
-        lines = b""
-        while True:
-            nextline = process.stdout.readline()
-            if len(nextline) == 0 and process.poll() != None:
-                break
-            lines += nextline
-        self.process_batch(lines, False)
-        exitCode = process.returncode
-        if self.verbose:
-            err_print("searching done")
-        return exitCode
-        """
 
     def play_zone(self, name):
         for zone in self.active_zones:
