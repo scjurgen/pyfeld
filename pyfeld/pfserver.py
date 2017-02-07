@@ -94,9 +94,13 @@ def search_and_play(origin, name, room):
         model.set_state('lastroom', room)
     else:
         room = model.get_state('lastroom')
-    return "Sorry! Couldn't find {0} in {1}".format(name, origin)
+    path = "0/My Music/Search/AllTracks"
+    title = "dc:title contains "+name
+    uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
+    jsonResult = uc_media.search(path, title, "json")
+    return jsonResult, "Sorry! Couldn't find {0} in {1}".format(name, origin)
 
-def search_and_play(room, value):
+def handle_volume(room, value):
     if value != '':
         uc = UpnpCommand(RfCmd.rfConfig['zones'][0]['host'])
         udn = RfCmd.get_room_udn(room)
@@ -110,6 +114,7 @@ def search_and_play(room, value):
     return "Sorry! Couldn't find {0} in {1}".format(name, origin)
 
 def handle_path_request(path):
+    print("requestpath:" + path)
     text_result = "Sorry! Did not understand what you are looking for!"
     padded_path = path + "//////"
     components = padded_path.split('/')
@@ -119,7 +124,7 @@ def handle_path_request(path):
         json_result, text_result = search_and_play(components[2], components[3], components[4])
 
     results = {'textresponse': text_result}
-    return json.dumps(results, sort_keys=True, indent=2)
+    return json.dumps(json_result, sort_keys=True, indent=2)
 
 
 class RequestHandler (BaseHTTPRequestHandler):
@@ -163,10 +168,10 @@ class RequestHandler (BaseHTTPRequestHandler):
             self.wfile.write(b"\n")
             self.wfile.write(bytearray(output, 'UTF-8'))
         except Exception as e:
-            self.send_response(404)
+            self.send_response(500)
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            output = "Rephrase your request, this is 404<br/>you asked for [" + str(self.path)+"]"
+            output = "Internal server error"+str(e)
             self.wfile.write(bytearray(output, 'UTF-8'))
 
 
@@ -197,6 +202,7 @@ def get_local_ip_address():
     return s.getsockname()[0]
 
 if __name__ == "__main__":
+    RfCmd.discover()
     uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
     run_server(28282)
 
