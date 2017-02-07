@@ -54,6 +54,28 @@ predefined search containers:
 0/My Music/AllTracks
 0/My Music/Titles
 
+
+other ideas:
+
+s&p -> keep lastlist
+/vol/lower  /higher  /very low
+/eq/bass/min /max /more
+/next/song
+/pre/album
+/whatisplayingnow
+/playposition
+/saveasfavorite/#
+/play/favorite/#
+/status
+/seekto/#:#
+/gostandby/
+/repeat/
+
+
+save last: room, list, volume, song
+
+
+
 """
 
 class Model:
