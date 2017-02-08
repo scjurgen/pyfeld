@@ -103,6 +103,11 @@ class Model:
 
 model = Model()
 
+def get_template(filename):
+    with open(filename, "rb") as f:
+        r = f.read()
+    return r.decode("utf-8")
+
 
 def search_and_play(origin, name, room):
     """
@@ -120,7 +125,15 @@ def search_and_play(origin, name, room):
     title = "dc:title contains "+name
     uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
     jsonResult = uc_media.search(path, title, "json")
-    return jsonResult, "Sorry! Couldn't find {0} in {1}".format(name, origin)
+    real_json = json.loads(jsonResult)
+    if len(real_json) > 0:
+        print(real_json[0]['title'])
+        print(real_json[0]['artist'])
+        print(real_json[0]['idPath'])
+        return "[]", "playing {0} by {1}".format(real_json[0]['title'], real_json[0]['artist'])
+    else:
+        return "[]", "Sorry! Couldn't find {0} in {1}".format(name, origin)
+
 
 def handle_volume(room, value):
     if value != '':
@@ -135,6 +148,7 @@ def handle_volume(room, value):
         return result
     return "Sorry! Couldn't find {0} in {1}".format(name, origin)
 
+
 def handle_path_request(path):
     print("requestpath:" + path)
     text_result = "Sorry! Did not understand what you are looking for!"
@@ -146,7 +160,7 @@ def handle_path_request(path):
         json_result, text_result = search_and_play(components[2], components[3], components[4])
 
     results = {'textresponse': text_result}
-    return json.dumps(json_result, sort_keys=True, indent=2)
+    return json_result
 
 
 class RequestHandler (BaseHTTPRequestHandler):
@@ -183,9 +197,14 @@ class RequestHandler (BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
-            output = handle_path_request(self.path)
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
+            if self.path == '/':
+                output = get_template("info.html")
+                self.send_response(200)
+                self.send_header("Content-type", "text/html")
+            else:
+                output = handle_path_request(self.path)
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(b"\n")
             self.wfile.write(bytearray(output, 'UTF-8'))
@@ -193,13 +212,13 @@ class RequestHandler (BaseHTTPRequestHandler):
             self.send_response(500)
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            output = "Internal server error"+str(e)
+            output = "Internal server error {0}".format(e)
             self.wfile.write(bytearray(output, 'UTF-8'))
-
 
 
 def open_info_channel(server):
     pass
+
 
 def scan_raumfeld():
     while 1:
@@ -208,11 +227,12 @@ def scan_raumfeld():
         print("done")
         sleep(120)
 
-def run_server(port):
+
+def run_server(host, port):
     threading.Thread(target=scan_raumfeld).start()
     try:
-        print("Starting json server on port {0}".format(port))
-        server = HTTPServer(("", port), RequestHandler)
+        print("Starting json server {}:{}".format(host, port))
+        server = HTTPServer((host, port), RequestHandler)
         server.serve_forever()
     except Exception as e:
         print("run_Server error:"+str(e))
@@ -226,5 +246,6 @@ def get_local_ip_address():
 if __name__ == "__main__":
     RfCmd.discover()
     uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
-    run_server(28282)
+    this_servers_ip = get_local_ip_address()
+    run_server(this_servers_ip, 28282)
 
