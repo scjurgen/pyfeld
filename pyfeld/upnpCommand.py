@@ -51,7 +51,6 @@ class UpnpCommand:
                    'Content-Type': 'text/xml; charset="utf-8"',
                    'Content-Length': str(len(body)),
                    'SOAPAction': '"urn:schemas-upnp-org:service:'+control_name+':1#'+action+'"'}
-        print(str(headers))
         try:
             response = requests.post(control_url, data=body, headers=headers, verify=False)
             if response.status_code < 300:
