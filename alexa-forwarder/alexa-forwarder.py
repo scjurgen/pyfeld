@@ -1,17 +1,31 @@
 #!/usr/bin/env python3
 
+import mimetypes
+import re
 import socketserver
 import signal
 import sys
 import threading
+
+from datetime import time, datetime
 from _socket import socket, AF_INET, SOCK_DGRAM
 from time import sleep
-import mimetypes
-import re
+
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-requests = dict()
+
+
+class RequestsStore:
+    def __init__(self, id, request):
+        self.id = id
+        self.request = request
+        self.expecting_data = False
+        self.running_id = 0
+        self.next_keep_alive = 10
+
+clients = dict()
+
 
 
 def get_base_port():
@@ -119,46 +133,55 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
 def send_infos(path):
+    global clients
     try:
         r = path.split('/', 2)
-        id = r[1]
-        msg = '#alexa ' + path[len(id)+1:] + '\n'
-        print(msg)
-        requests[id].sendall(bytearray(msg.encode('Utf-8')))
-        response_data = requests[id].recv(1024).decode('utf-8')
-        if response_data.startswith("ack "):
-            return response_data[4:]
+        user_id = r[1]
+        clients[user_id].next_keep_alive = 10
+        clients[user_id].expecting_data = True
+        clients[user_id].running_id += 1
+        msg = "#alexa {} {}\n".format(clients[user_id].running_id, path[len(user_id)+1:])
+        print("sending msg: " + msg)
+        clients[user_id].request.sendall(bytearray(msg.encode('Utf-8')))
+        print("waiting for response")
+        response_data = clients[user_id].request.recv(1500).decode('utf-8')
+        print("got response from pfserver: '{}'".format(response_data))
+        if response_data.startswith("#ack {} ".format(clients[user_id].running_id)):
+            clients[user_id].expecting_data = False
+            return response_data.split(" ", 2)[2]
         else:
+            clients[user_id].expecting_data = False
             return response_data
-    except:
+
+    except Exception as e:
+        print("send_infos error occured: {}".format(e))
+        clients[user_id].expecting_data = False
         return "not allowed"
 
 
 def scan_raumfeld():
-    global requests
-    sleep(10)
-    count = 0
+    global clients
     while 1:
-        count += 1
-        for key, value in requests.items():
-            msg = '#keep-alive ' + str(count) + " " + key + '\n'
-            print(msg)
-            try:
-                value.sendall(bytearray(msg.encode('Utf-8')))
-            except:
-                pass
-        ''' not a good solution, doesn't scale,
-        server would send bursts of data every 60 seconds
-         if there are many connections'''
-        sleep(60)
+        for key, value in clients.items():
+            if value.next_keep_alive == 0:
+                value.next_keep_alive = 10
+                msg = '#keep-alive ' + key + datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + '\n'
+                print(msg)
+                try:
+                    value.request.sendall(bytearray(msg.encode('Utf-8')))
+                except:
+                    pass
+            value.next_keep_alive -= 1
+
+        sleep(1)
 
 
 def signal_handler(signal, frame):
     global fetcher_server
     print('received signal', signal)
     print("shutting down connections")
-    for key, value in requests.items():
-        value.close()
+    for key, value in clients.items():
+        value.request.close()
     fetcher_server.shutdown()
     sys.exit(0)
 
@@ -173,63 +196,68 @@ threading.Thread(target=scan_raumfeld).start()
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
     def handle(self):
         print("got a connection from ", self.client_address)
-        self.request.settimeout(120)
-        id = None
+        self.request.settimeout(5)
+        user_id = None
         end_connection = False
         error_count = 0
         empty_count = 0
         self.request.sendall(b'login:\r\n')
         while True:
-            raw_data = self.request.recv(1024)
+            try:
+                raw_data = self.request.recv(1500)
+            except:
+                raw_data = b""
             if len(raw_data) == 0:
                 empty_count += 1
-                if empty_count > 4:
+                if empty_count > 120/5:
                     print("receiving rubbish, terminating connection")
-                    end_connection = True
-                sleep(1)
+                    self.request.sendall(b'bye bye :(\r\n')
+                    self.request.close()
+                    return
             else:
                 empty_count = 0
-            data = str(raw_data, 'utf-8').strip()
+                data = str(raw_data, 'utf-8').strip()
 
-            print("I received '{}'".format(data))
-            cur_thread = threading.current_thread()
-            response = "{}: {}".format(cur_thread.name, data)
-            if data.startswith('#id '):
-                if id is not None:
-                    self.request.sendall(b'You already gave an ID!\r\n')
-                else:
-                    id = data.split(' ')[1]
-                    self.request.sendall(b'password:\r\n')
-            if data.startswith('#pwd '):
-                if id is not None:
-                    print("client identified with id {}. Adding to pool.".format(id))
-                    requests[id] = self.request
-                    self.request.sendall(b'ok\r\n')
+                print("I received '{}'".format(data))
+                if data.startswith('#id '):
+                    if user_id is not None:
+                        self.request.sendall(b'You already gave an ID!\r\n')
+                    else:
+                        user_id = data.split(' ')[1]
+                        self.request.sendall(b'password:\r\n')
+                if data.startswith('#pwd '):
+                    if user_id is not None:
+                        print("client identified with id {}. Adding to pool.".format(user_id))
+                        clients[user_id] = RequestsStore(user_id, self.request)
+                        self.request.sendall(b'ok\r\n')
 
-                else:
-                    print("sends password (which is wrong).".format(id))
-                    end_connection = True
-            if id == '':
-                error_count += 1
-                if error_count == 3:
-                    end_connection = True
-                self.request.sendall(b'asked you to login:\r\n')
-            if data.startswith('#quit'):
-                self.request.sendall(b'see you! :)\r\n')
-                self.request.close()
-                try:
-                    del requests[id]
-                except KeyError:
-                    pass
-                print("Client exit!")
-                return
-            if data.startswith('#ack '):
-                print("response is {}".format(data[5:]))
+                    else:
+                        print("sends password (which is wrong).".format(user_id))
+                        end_connection = True
 
-            if end_connection:
-                self.request.sendall(b'bye bye :(\r\n')
-                self.request.close()
-                return
+                if user_id is None:
+                    error_count += 1
+                    if error_count == 3:
+                        end_connection = True
+                    self.request.sendall(b'asked you to login:\r\n')
+
+                if data.startswith('#quit'):
+                    self.request.sendall(b'see you! :)\r\n')
+                    self.request.close()
+                    try:
+                        del clients[user_id]
+                    except KeyError:
+                        pass
+                    print("Client exit!")
+                    return
+
+                if data.startswith('#ack '):
+                    print("response is {}".format(data[5:]))
+
+                if end_connection:
+                    self.request.sendall(b'bye bye :(\r\n')
+                    self.request.close()
+                    return
 
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
