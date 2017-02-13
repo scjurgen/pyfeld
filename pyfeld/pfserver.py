@@ -12,22 +12,20 @@ C 0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons/595 * "Aw
 
 """
 
-import mimetypes
 import json
+import mimetypes
+import telnetlib
 import threading
+
 from concurrent.futures import thread
-
-from socket import *
-
-from http.server import HTTPServer, urllib
+from datetime import time, datetime
 from http.server import BaseHTTPRequestHandler
-
-from datetime import time
-from time import sleep
-
+from http.server import HTTPServer, urllib
+from pyfeld.settings import Settings
 from pyfeld.upnpCommand import UpnpCommand
 from rfcmd import RfCmd
-
+from socket import *
+from time import sleep
 
 def get_template(filename):
     with open(filename, "rb") as f:
@@ -76,11 +74,7 @@ s&p -> keep lastlist
 /gostandby/
 /repeat/
 
-
 save last: room, list, volume, song
-
-
-
 """
 
 class Model:
@@ -105,8 +99,19 @@ class Model:
             result += "\n" + item.first + ":" + item.second
         return result
 
+    def load_states(self):
+        try:
+            s = open(Settings.home_directory() + "/pfserver.json", 'r').read()
+            self.data_dict = json.loads(s)
+        except:
+            pass
+
+    def save_states(self):
+        with open(Settings.home_directory()+"/pfserver.json", 'w') as f:
+            json.dump(self.data_dict, f, ensure_ascii=True, sort_keys=True, indent=4)
 
 model = Model()
+model.load_states()
 
 def get_template(filename):
     with open(filename, "rb") as f:
@@ -194,61 +199,88 @@ def search_and_play(origin, where, name, room):
     return "[]", "Sorry! Couldn't find {0} in {1}".format(name, origin)
 
 
-def handle_volume(arg1, arg2):
-    if arg1 == "":
-        getVolume = True
-        return "can't get volume"
+def is_an_int(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
 
+
+def createzone_if_room_unassigned(roomName):
     zoneIndex = RfCmd.get_room_zone_index(roomName)
-    print("Room found in zone ", zoneIndex)
-    if zoneIndex == -1:
-        print("ERROR: room with name '{0}' not found".format(roomName))
-        print("Available rooms are to be found here:\n" + RfCmd.get_info(False))
-        return
-    if RfCmd.is_unassigned_room(roomName):
-        print('error: room is unassigned: ' + roomName)
-        return
-    uc = UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
-    udn = RfCmd.get_room_udn(roomName)
-    result = uc.set_room_volume(udn, value)
-    return result
+    if "unassigned room" == RfCmd.rfConfig['zones'][zoneIndex]['name']:
+        RfCmd.raumfeld_host_device.create_zone_with_rooms([roomName,])
+        sleep(2)
+        RfCmd.discover()
+
+
+def handle_volume(arg1, arg2):
+    get_volume = False
+    if arg1 == "":
+        get_volume = True
+    elif is_an_int(arg1) and arg2 == "":
+        value = int(arg1)
+    elif is_an_int(arg2):
+        handle_room(arg1)
+        value = int(arg2)
+    room_name = model.get_state('room')
+
+    createzone_if_room_unassigned(room_name)
+
+    zone_index = RfCmd.get_room_zone_index(room_name)
+    uc = UpnpCommand(RfCmd.rfConfig['zones'][zone_index]['host'])
+    udn = RfCmd.get_room_udn(room_name)
+    if get_volume:
+        result = uc.get_room_volume(udn, "plain")
+    else:
+        uc.set_room_volume(udn, value)
+        result = "done"
+    dict_result = {"result": result}
+    return result, json.dumps(dict_result)
 
 def play(what, which):
     pass
 
 
-def handle_room(roomName):
-    room_dict = {'room':'not found'}
-    textresult = "The Room " + roomName " has not been found!"
-    zoneIndex = RfCmd.get_room_zone_index(roomName)
-    if zoneIndex == -1:
-        return "the room "
-    if RfCmd.is_unassigned_room(roomName):
-    model.set_state('room', components[3])
+def handle_room(room_name):
+    room_dict = {'room': room_name+' not found'}
+    textresult = "The Room " + room_name + " has not been found!"
+    zoneIndex = RfCmd.get_room_zone_index(room_name)
+    if zoneIndex != -1:
+        if RfCmd.is_unassigned_room(room_name):
+            udn = RfCmd.get_room_udn(room_name)
+            #raumfeld_host_device.create_zone_with_rooms(rooms)
+            #RfCmd.create_zone(roomName)
+        model.set_state('room', room_name)
+        textresult = room_name + " is active"
+        room_dict = {'room': room_name+' is active'}
     return textresult, json.dumps(room_dict)
+
 
 def handle_path_request(path):
     json_result = ""
     print("requestpath:" + path)
-    text_result = "Sorry! Did not understand what you are looking for!"
+    text_result = "Sorry! Did not understand what you are looking for! Request wants a format like text or json!"
     padded_path = path + "//////"
 
     components = padded_path.split('/')
-    format = components[1]
-    if format in ['text', 'json']:
+    request_format = components[1]
+    if request_format in ['text', 'json']:
         if components[2] == 'room':
             json_result, text_result = handle_room(components[3])
-        if components[2] == 'volume':
+        elif components[2] == 'volume':
             json_result, text_result = handle_volume(components[3], components[4])
-        if components[2] == 'searchandplay':
+        elif components[2] == 'searchandplay':
             json_result, text_result = search_and_play(components[3], components[4], components[5], components[6])
-        if components[2] == 'search':
+        elif components[2] == 'search':
             json_result, text_result = search(components[3], components[4], components[5])
-        if components[2] == 'play':
+        elif components[2] == 'play':
             json_result, text_result = play(components[3], components[4])
-        if format == 'text':
+
+        if request_format == 'text':
             return text_result
-        if format == 'json':
+        if request_format == 'json':
             return json_result
     return text_result
 
@@ -311,7 +343,7 @@ class RequestHandler (BaseHTTPRequestHandler):
             self.wfile.write(bytearray(output, 'UTF-8'))
 
 
-def open_info_channel(server):
+def open_info_channel(ip, port):
     pass
 
 
@@ -320,7 +352,49 @@ def scan_raumfeld():
         print("discovery")
         RfCmd.discover()
         print("done")
+        model.save_states()
         sleep(120)
+
+
+running = True
+
+
+def call_forwarder():
+    global running
+    host = "192.168.2.115"
+    port = 8080
+    while running:
+        try:
+            tn = telnetlib.Telnet(host, port)
+        except:
+            print("no telnet server {}:{}".format(host, port))
+            sleep(10)
+            continue
+        try:
+            print("connected to telnet server {}:{}".format(host, port))
+
+            tn.read_until(b"login:")
+            tn.write(b"#id scjurgen\n")
+            tn.read_until(b"password:")
+            tn.write(b"#pwd bogus\n")
+            tn.read_until(b"ok")
+            while True:
+                print("waiting for data")
+                received_data = tn.read_until(b"\n")
+                data = received_data.decode('utf-8')
+                print(data)
+                if data.startswith('#keep-alive'):
+                    res = '{ "result":"#alive ' + datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + '"}\n'
+#                    tn.write(b"{ \"result\":\"#ack\"}\n")
+#                    print(res)
+                    tn.write(res.encode('Utf-8'))
+                elif data.startswith('#alexa '):
+                    data = data.rstrip()[len('#alexa '):]
+                    res = '#ack '+handle_path_request(data) + '\n'
+                    tn.write(res.encode('utf-8'))
+        except:
+            print("peer reset connection {}:{}".format(host, port))
+            sleep(1)
 
 
 def run_server(host, port):
@@ -340,7 +414,9 @@ def get_local_ip_address():
 
 
 if __name__ == "__main__":
-    UpnpCommand.overwrite_user_agent("RaumfeldControl")
+    threading.Thread(target=call_forwarder).start()
+
+    #UpnpCommand.overwrite_user_agent("Raumfeld-Control/1.0")
     RfCmd.discover()
     uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
     this_servers_ip = get_local_ip_address()

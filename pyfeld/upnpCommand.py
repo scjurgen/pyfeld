@@ -26,7 +26,9 @@ class UpnpCommand:
         user_agent = new_user_agent
 
     def host_send(self, action, control_path, control_name, action_args):
-
+        if self.host is None:
+            print("Serious problem, no host defined!")
+            return None
         if self.host.startswith("http://"):
             control_url = self.host + control_path
             host_name = self.host[7:]
@@ -52,6 +54,7 @@ class UpnpCommand:
                    'Content-Length': str(len(body)),
                    'SOAPAction': '"urn:schemas-upnp-org:service:'+control_name+':1#'+action+'"'}
         try:
+            print(str(control_url), str(body), str(headers))
             response = requests.post(control_url, data=body, headers=headers, verify=False)
             if response.status_code < 300:
                 if self.verbose:

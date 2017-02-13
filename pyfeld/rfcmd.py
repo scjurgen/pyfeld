@@ -23,7 +23,6 @@ from pyfeld.didlInfo import DidlInfo
 
 version = "0.9.3"
 
-raumfeld_host_device = None
 
 class InfoList:
     def __init__(self, sortItem, others):
@@ -36,10 +35,10 @@ class InfoList:
 
 class RfCmd:
     rfConfig = dict()
+    raumfeld_host_device = None
 
     @staticmethod
     def get_raumfeld_infrastructure():
-        global raumfeld_host_device
         try:
             s = open(Settings.home_directory()+"/data.json", 'r').read()
             RfCmd.rfConfig = json.loads(s)
@@ -49,7 +48,7 @@ class RfCmd:
                     zone['rooms'] = None
                 if not 'udn' in zone:
                     zone['udn'] = None
-            raumfeld_host_device = RaumfeldDeviceSettings(RfCmd.rfConfig['host'])
+            RfCmd.raumfeld_host_device = RaumfeldDeviceSettings(RfCmd.rfConfig['host'])
         except Exception as err:
             print("get_raumfeld_infrastructure: Exception: {0}".format(err))
             return None
@@ -779,7 +778,7 @@ def run_main():
             if udn is None:
                 print("unknown room "+argv[argpos])
             else:
-                raumfeld_host_device.set_room_standby(str(udn), state)
+                RfCmd.raumfeld_host_device.set_room_standby(str(udn), state)
             argpos += 1
     elif operation == 'position':
         results = uc.get_position_info()
@@ -811,7 +810,7 @@ def run_main():
             result += "{0}'\n".format(str(udn))
             rooms.add(str(udn))
             argpos += 1
-        raumfeld_host_device.create_zone_with_rooms(rooms)
+            RfCmd.raumfeld_host_device.create_zone_with_rooms(rooms)
         sleep(2)
         RfCmd.discover()
     elif operation == 'addtozone':
@@ -826,7 +825,7 @@ def run_main():
             result += "{0}'\n".format(str(udn))
             rooms.add(str(udn))
             argpos += 1
-        raumfeld_host_device.add_rooms_to_zone(zone_udn, rooms)
+        RfCmd.raumfeld_host_device.add_rooms_to_zone(zone_udn, rooms)
         sleep(2)
         RfCmd.discover()
     elif operation == 'drop':
@@ -836,7 +835,7 @@ def run_main():
                 udn = argv[argpos]
             else:
                 udn = RfCmd.get_room_udn(argv[argpos])
-            result += str(raumfeld_host_device.drop_room(str(udn)))
+            result += str(RfCmd.raumfeld_host_device.drop_room(str(udn)))
             argpos += 1
         sleep(2)
         RfCmd.discover()
@@ -856,7 +855,7 @@ def run_main():
     elif operation == 'urls':
         result = ""
     elif operation == 'host':
-        result = raumfeld_host_device.server_ip
+        result = RfCmd.raumfeld_host_device.server_ip
     elif operation == 'deviceips':
         result = RfCmd.get_device_ips(verbose, format)
         result = result[:-1]
