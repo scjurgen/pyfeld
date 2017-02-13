@@ -157,11 +157,17 @@ class RaumfeldDeviceSettings:
     def create_zone_with_rooms(self, rooms):
         try:
             requests.packages.urllib3.disable_warnings()
-            url = "http://" + self.server_ip + ":47365/connectRoomsToZone?"
-            url += "roomUDNs="
-            for item in rooms:
-                url += item+","
-            url = url[:-1]
+            url = "http://" + self.server_ip + ":47365/"
+            if len(rooms) == 1:
+                url += "connectRoomToZone?"
+                url += "roomUDN="
+                url += rooms[0]
+            else:
+                url += "connectRoomsToZone?"
+                url += "roomUDNs="
+                for item in rooms:
+                    url += item+","
+                url = url[:-1]
             r = requests.get(url)
             return r
 
