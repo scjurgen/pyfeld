@@ -2,8 +2,10 @@
 
 """
 
-http://172.31.0.10:28282/text/search/mymusic/album/sh
+
 http://172.31.0.10:28282/text/play/album/1
+http://192.168.2.115:8082/scjurgen/text/search/mymusic/albums/what
+http://192.168.2.115:8082/scjurgen/text/play/album/1
 
 pyfeld -d browse "0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons"
 C 0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons/595 * "Awaken, My Love!"
@@ -19,6 +21,7 @@ import threading
 
 from concurrent.futures import thread
 from datetime import time, datetime
+
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer, urllib
 from pyfeld.settings import Settings
@@ -113,6 +116,15 @@ class Model:
 model = Model()
 model.load_states()
 
+
+def is_an_int(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+
 def get_template(filename):
     with open(filename, "rb") as f:
         r = f.read()
@@ -199,14 +211,6 @@ def search_and_play(origin, where, name, room):
     return "[]", "Sorry! Couldn't find {0} in {1}".format(name, origin)
 
 
-def is_an_int(s):
-    try:
-        int(s)
-        return True
-    except ValueError:
-        return False
-
-
 def createzone_if_room_unassigned(roomName):
     zoneIndex = RfCmd.get_room_zone_index(roomName)
     if "unassigned room" == RfCmd.rfConfig['zones'][zoneIndex]['name']:
@@ -232,16 +236,33 @@ def handle_volume(arg1, arg2):
     uc = UpnpCommand(RfCmd.rfConfig['zones'][zone_index]['host'])
     udn = RfCmd.get_room_udn(room_name)
     if get_volume:
-        result = uc.get_room_volume(udn, "plain")
+        volume = uc.get_room_volume(udn, "plain")
+        result = "Volume in room {} is {}".format(room_name, volume)
+        dict_result = {"result": volume}
     else:
         uc.set_room_volume(udn, value)
-        result = "done"
-    dict_result = {"result": result}
-    return result, json.dumps(dict_result)
+        result = "Volume {} set in room {}".format(value, room_name)
+        dict_result = {"result": value}
+    return json.dumps(dict_result), result
 
-def play(what, which):
-    pass
 
+def play(what, which, room):
+    if room != '':
+        model.set_state('lastroom', room)
+    else:
+        room = model.get_state('lastroom')
+    itemIndex = what + " " + str(which)
+    try:
+        obj = model.get_state(itemIndex)
+        play_this(obj['idPath'])
+        return obj, "playing {0}".format(obj['title'])
+    except:
+        return "[]", "Sorry! Couldn't play {0} {1} in room {2}".format(what, which, room)
+
+def get_status():
+    text = RfCmd.get_info(0, 'text')
+    json = RfCmd.get_info(0, 'json')
+    return json, text
 
 def handle_room(room_name):
     room_dict = {'room': room_name+' not found'}
@@ -255,34 +276,44 @@ def handle_room(room_name):
         model.set_state('room', room_name)
         textresult = room_name + " is active"
         room_dict = {'room': room_name+' is active'}
-    return textresult, json.dumps(room_dict)
+    return json.dumps(room_dict), textresult
 
 
 def handle_path_request(path):
-    json_result = ""
-    print("requestpath:" + path)
-    text_result = "Sorry! Did not understand what you are looking for! Request wants a format like text or json!"
-    padded_path = path + "//////"
+    try:
+        json_result = ""
+        print("requestpath:" + path)
+        text_result = "Sorry! Did not understand what you are looking for! Request wants a format like text or json!"
+        padded_path = path + "//////"
 
-    components = padded_path.split('/')
-    request_format = components[1]
-    if request_format in ['text', 'json']:
-        if components[2] == 'room':
-            json_result, text_result = handle_room(components[3])
-        elif components[2] == 'volume':
-            json_result, text_result = handle_volume(components[3], components[4])
-        elif components[2] == 'searchandplay':
-            json_result, text_result = search_and_play(components[3], components[4], components[5], components[6])
-        elif components[2] == 'search':
-            json_result, text_result = search(components[3], components[4], components[5])
-        elif components[2] == 'play':
-            json_result, text_result = play(components[3], components[4])
+        components = padded_path.split('/')
+        request_format = components[1]
+        if request_format in ['text', 'json']:
+            if components[2] == 'room':
+                json_result, text_result = handle_room(components[3])
+            elif components[2] == 'volume':
+                json_result, text_result = handle_volume(components[3], components[4])
+            elif components[2] == 'searchandplay':
+                json_result, text_result = search_and_play(components[3], components[4], components[5], components[6])
+            elif components[2] == 'search':
+                json_result, text_result = search(components[3], components[4], components[5])
+            elif components[2] == 'play':
+                json_result, text_result = play(components[3], components[4], components[5])
+            elif components[2] == 'status':
+                json_result, text_result = get_status()
 
+            if request_format == 'text':
+                return text_result
+            if request_format == 'json':
+                return json_result
+        return text_result
+    except Exception as e:
         if request_format == 'text':
-            return text_result
+            return "an error occured: {}".format(e)
         if request_format == 'json':
             return json_result
-    return text_result
+            return "{\"error\":\"{}\"}".format(e)
+
 
 
 class RequestHandler (BaseHTTPRequestHandler):
@@ -383,16 +414,22 @@ def call_forwarder():
                 received_data = tn.read_until(b"\n")
                 data = received_data.decode('utf-8')
                 print(data)
-                if data.startswith('#keep-alive'):
-                    res = '{ "result":"#alive ' + datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + '"}\n'
-#                    tn.write(b"{ \"result\":\"#ack\"}\n")
-#                    print(res)
-                    tn.write(res.encode('Utf-8'))
-                elif data.startswith('#alexa '):
-                    data = data.rstrip()[len('#alexa '):]
-                    res = '#ack '+handle_path_request(data) + '\n'
-                    tn.write(res.encode('utf-8'))
-        except:
+                try:
+                    if data.startswith('#keep-alive'):
+                        res = '{ "result":"#alive ' + datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + '"}\n'
+    #                    tn.write(b"{ \"result\":\"#ack\"}\n")
+    #                    print(res)
+                        tn.write(res.encode('Utf-8'))
+                    elif data.startswith('#alexa '):
+                        dataset = data.split(' ', 2)
+                        msg_number = dataset[1]
+                        data = dataset[2].rstrip()
+                        res = "#ack {} {}\n".format(msg_number, handle_path_request(data))
+                        tn.write(res.encode('utf-8'))
+                except Exception as e:
+                    print("error occured {}".format(e))
+        except Exception as e:
+            print("error occured {}".format(e))
             print("peer reset connection {}:{}".format(host, port))
             sleep(1)
 

@@ -309,6 +309,17 @@ class RfCmd:
     def get_info(verbose, format):
         if format == 'json':
             return json.dumps(RfCmd.rfConfig, sort_keys=True, indent=2) + "\n"
+        elif format == 'text':
+            i = 0
+            result = ""
+            for zone in RfCmd.rfConfig['zones']:
+                result += "Zone #{0}: {1}; ".format(i, zone['name'])
+                if zone['rooms'] is None:
+                    result += "unassigned: "
+                    for room in zone['rooms']:
+                        result += "{0} ".format(room['name'])
+
+                i += 1
         else:
             i = 0
             result = ""
