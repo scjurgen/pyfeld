@@ -21,8 +21,7 @@ from pyfeld.getRaumfeld import RaumfeldDeviceSettings
 from pyfeld.raumfeldHandler import RaumfeldHandler
 from pyfeld.didlInfo import DidlInfo
 
-version = "0.9.8"
-
+version = "0.9.9"
 
 
 class InfoList:
