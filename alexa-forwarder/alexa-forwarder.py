@@ -4,6 +4,7 @@ import mimetypes
 import re
 import socketserver
 import signal
+import ssl
 import sys
 import threading
 
@@ -29,7 +30,7 @@ clients = dict()
 
 
 def get_base_port():
-    return 8080
+    return 24443 
 
 
 def get_template(filename):
@@ -63,6 +64,12 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(bytearray(json_string, 'UTF-8'))
         except Exception as e:
             print("handle_get_query error {0}".format(e))
+
+    def do_POST(self):
+        print("Post request: {}".format(self.path))
+        ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
+        print(ctype)
+        print(pdict)
 
     def do_GET(self):
         print("Get request: {}".format(self.path))
@@ -272,12 +279,15 @@ def get_local_ip_address():
 
 if __name__ == "__main__":
     socketserver.TCPServer.allow_reuse_address = True
-    host, server_port = get_local_ip_address(), get_base_port()
-    print("Starting fetcher server as {0}:{1}".format(host, server_port))
 
-    fetcher_server = ThreadedTCPServer((host, server_port), ThreadedTCPRequestHandler)
-    http_server = HTTPServer((host, server_port + 2), RequestHandler)
-    print("Starting http server as {0}:{1}".format(host, server_port + 2))
+    host, server_port = get_local_ip_address(), get_base_port()
+    
+
+    fetcher_server = ThreadedTCPServer((host, server_port+2), ThreadedTCPRequestHandler)
+    http_server = HTTPServer((host, server_port), RequestHandler)
+    print("Started fetcher server as {0}:{1}".format(host, server_port+2))
+    print("Started https server as {0}:{1}".format(host, server_port))
+
 
     fetcher_server_thread = threading.Thread(target=fetcher_server.serve_forever)
     fetcher_server_thread.daemon = True
@@ -295,3 +305,4 @@ if __name__ == "__main__":
     http_server.shutdown()
     http_server.server_close()
     print("stopped all")
+

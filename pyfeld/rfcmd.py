@@ -63,8 +63,18 @@ class RfCmd:
         for zone in RfCmd.rfConfig['zones']:
             if zone['rooms'] is not None:
                 for room in zone['rooms']:
-                    for renderer in room.get_renderer_list():
+                    for renderer in room['room_renderers']:
                         if renderer['name'] == renderer_name:
+                            return renderer['udn']
+        return None
+
+    @staticmethod
+    def get_udn_from_renderer_by_room(room_name):
+        for zone in RfCmd.rfConfig['zones']:
+            if zone['rooms'] is not None:
+                for room in zone['rooms']:
+                    if room['name'] == room_name:
+                        for renderer in room['room_renderers']:
                             return renderer['udn']
         return None
 
@@ -252,6 +262,8 @@ class RfCmd:
         items = didlinfo.get_items()
         if format == 'json':
             return json.dumps(items, sort_keys=True, indent=2)
+        elif format == 'dict':
+            return items
         else:
             result = ""
             result += items['artist'] + "\n"
