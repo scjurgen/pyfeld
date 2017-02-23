@@ -57,7 +57,8 @@ class UpnpCommand:
                    'SOAPAction': '"urn:schemas-upnp-org:service:'+control_name+':1#'+action+'"'}
         try:
             t = time()
-            print(str(control_url), str(body), str(headers))
+            if self.verbose:
+                print(str(control_url), str(body), str(headers))
             response = requests.post(control_url, data=body, headers=headers, verify=False)
             print("time needed = ", time() - t)
             if response.status_code < 300:

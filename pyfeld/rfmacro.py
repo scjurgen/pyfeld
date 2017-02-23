@@ -104,6 +104,7 @@ def force_update(url):
         proc.start()
         processes.append(proc)
         device_pingable[ip] = True
+<<<<<<< HEAD
         count += 1
 
     temp_count = count
@@ -133,6 +134,13 @@ def force_update(url):
 
     print("done updating shells. Leaving the houses now.")
     free_to_kill.killall()
+=======
+        device_unpingable[ip] = False
+
+###    while not all(device_pingable):
+###        sleep(5)
+
+>>>>>>> 478519738098fe65960f11b117cdf66cda348fcc
     for proc in processes:
         proc.join()
     print("Processes joined joyfully")

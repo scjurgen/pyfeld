@@ -24,11 +24,22 @@ from datetime import time, datetime
 
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer, urllib
+
+from os import unlink
+
 from pyfeld.settings import Settings
 from pyfeld.upnpCommand import UpnpCommand
 from rfcmd import RfCmd
 from socket import *
 from time import sleep
+
+import logging
+
+LOG_FILENAME = Settings.home_directory()+'/pfserver.log'
+unlink(LOG_FILENAME)
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG)
+
+logging.debug('This message should go to the log file')
 
 def get_template(filename):
     with open(filename, "rb") as f:
@@ -93,7 +104,7 @@ class Model:
         else:
             return None
 
-    def get_states(self, key):
+    def get_states(self):
         return self.data_dict
 
     def get_info(self):
@@ -177,6 +188,8 @@ def play_this(song):
         transport_data['CurrentURI'] = RfCmd.build_dlna_play_container(udn, "urn:upnp-org:serviceId:ContentDirectory", song)
     transport_data['CurrentURIMetaData'] = '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:raumfeld="urn:schemas-raumfeld-com:meta-data/raumfeld"><container></container></DIDL-Lite>'
     uc.set_transport_uri(transport_data)
+    didlExtract = RfCmd.get_didl_extract(browseresult['Result'], 'dict')
+    return didlExtract['title']
 
 
 def playAbleItems():
@@ -199,7 +212,7 @@ def search_and_play(origin, where, name, room):
         if real_json[0]['class'] in playAbleItems():
             play_this(real_json[0]['idPath'])
             model.set_state('songlist', real_json)
-            return jsonResult, "playing {0}".format(real_json[0]['title'])
+            return jsonResult, "Es spielt jetzt {0}".format(real_json[0]['title'])
         if real_json[0]['class'] == 'object.container.person.musicArtist':
             jsonResult = uc_media.browse_recursive_children(real_json[0]['idPath'], 0, "json")
             real_json = json.loads(jsonResult)
@@ -207,8 +220,8 @@ def search_and_play(origin, where, name, room):
                 if real_json[0]['class'] in playAbleItems():
                     model.set_state('songlist', real_json)
                     play_this(real_json[0]['idPath'])
-                    return jsonResult, "playing {0}".format(real_json[0]['title'])
-    return "[]", "Sorry! Couldn't find {0} in {1}".format(name, origin)
+                    return jsonResult, "Es spielt jetzt  {0}".format(real_json[0]['title'])
+    return "[]", "Folgendes konnte Raumfeld nicht finden: {0} in {1}".format(name, origin)
 
 
 def createzone_if_room_unassigned(roomName):
@@ -251,6 +264,32 @@ def play(what, which, room):
         model.set_state('lastroom', room)
     else:
         room = model.get_state('lastroom')
+    if what == 'localradio':
+        browse_query = "0/RadioTime/LocalRadio"
+        uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
+        jsonResult = uc_media.browse_recursive_children(browse_query, 0, "json")
+        real_json = json.loads(jsonResult)
+        if len(real_json) > 0:
+            if is_an_int(which):
+                song = real_json[int(which)]['idPath']
+                play_this(song)
+                result = "Ich spiele jetzt {}".format(real_json[int(which)]['title'])
+        return "[]", result
+
+    if what == 'station':
+        udn = RfCmd.get_udn_from_renderer_by_room(room)
+        if udn is None:
+            return "[]", "Ein Fehler ist aufgetreten. Renderer fuer raum {} wurde nicht gefunden. Mist!".format(room)
+        browse_query = "0/Renderers/{0}/StationButtons".format(udn)
+        uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
+        jsonResult = uc_media.browse_recursive_children(browse_query, 0, "json")
+        real_json = json.loads(jsonResult)
+        if len(real_json) > 0:
+            if is_an_int(which):
+                song = real_json[int(which)]['idPath']
+                play_this(song)
+                result = "Ich spiele jetzt {}".format(real_json[int(which)]['title'])
+        return "[]", result
     itemIndex = what + " " + str(which)
     try:
         obj = model.get_state(itemIndex)
@@ -273,7 +312,7 @@ def handle_room(room_name):
             udn = RfCmd.get_room_udn(room_name)
             #raumfeld_host_device.create_zone_with_rooms(rooms)
             #RfCmd.create_zone(roomName)
-        model.set_state('room', room_name)
+        model.set_state('lastroom', room_name)
         textresult = room_name + " is active"
         room_dict = {'room': room_name+' is active'}
     return json.dumps(room_dict), textresult
@@ -318,7 +357,7 @@ def handle_path_request(path):
 
 class RequestHandler (BaseHTTPRequestHandler):
     def log_message(self, format, *args):
-        print()
+        return
 
     def page_not_found(self):
         self.send_response(404)
@@ -359,6 +398,10 @@ class RequestHandler (BaseHTTPRequestHandler):
                 output += "search in radio: album  all artists or composer."
                 self.send_header("Content-type", "text/html")
                 self.send_response(200)
+            elif self.path == '/debug':
+                output = json.dumps(model.get_states())
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
             else:
                 output = handle_path_request(self.path)
                 self.send_response(200)
@@ -462,4 +505,3 @@ if __name__ == "__main__":
     uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
     this_servers_ip = get_local_ip_address()
     run_server(this_servers_ip, arglist.localport)
-

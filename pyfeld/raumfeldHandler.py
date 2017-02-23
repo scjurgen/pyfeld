@@ -403,12 +403,17 @@ class RaumfeldHandler:
             print("No host found: switched on? available in raumfeld app? Crashed?")
             exit(1)
         self.reprocess()
-        return 0
+        return None
 
     # this works on most, we could implement our own port 47365 search (very specific to raumfeld!)
     def search_nmap_range(self, iprange):
         lines = self.nmap_fallback()
+<<<<<<< HEAD:pyfeld/raumfeldHandler.py
         self.process_batch(lines, False)
+=======
+        if lines is not None:
+            self.process_batch(lines, False)
+>>>>>>> 478519738098fe65960f11b117cdf66cda348fcc:pyfeld/zonesHandler.py
         return 0
 
     def play_zone(self, name):
