@@ -13,7 +13,7 @@ C 0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons/595 * "Aw
 + 0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons/689 * Deutschlandradio Kultur
 
 """
-
+import argparse
 import json
 import mimetypes
 import telnetlib
@@ -318,7 +318,7 @@ def handle_path_request(path):
 
 class RequestHandler (BaseHTTPRequestHandler):
     def log_message(self, format, *args):
-        return
+        print()
 
     def page_not_found(self):
         self.send_response(404)
@@ -390,10 +390,8 @@ def scan_raumfeld():
 running = True
 
 
-def call_forwarder():
+def call_forwarder(host, port):
     global running
-    host = "192.168.2.115"
-    port = 8080
     while running:
         try:
             tn = telnetlib.Telnet(host, port)
@@ -437,8 +435,8 @@ def call_forwarder():
 def run_server(host, port):
     threading.Thread(target=scan_raumfeld).start()
     try:
-        print("Starting json server {}:{}".format(host, port))
-        server = HTTPServer((host, port), RequestHandler)
+        print("Starting json server {}:{}".format(host, int(port)))
+        server = HTTPServer((host, int(port)), RequestHandler)
         server.serve_forever()
     except Exception as e:
         print("run_Server error:"+str(e))
@@ -451,11 +449,17 @@ def get_local_ip_address():
 
 
 if __name__ == "__main__":
-    threading.Thread(target=call_forwarder).start()
+    parser = argparse.ArgumentParser(description='pfserver,A.K.A. Raumfeldserver with pyfeld.')
+    parser.add_argument('--telnetserverip', default="127.0.0.1", help='Address of telnet server in the cloud')
+    parser.add_argument('--telnetserverport', default='4445', help='Port of telnet server in the cloud')
+    parser.add_argument('--localport', default='8088', help='local port for eventual rest interface')
+    arglist = parser.parse_args()
+
+    threading.Thread(target=call_forwarder, args=[arglist.telnetserverip, arglist.telnetserverport]).start()
 
     #UpnpCommand.overwrite_user_agent("Raumfeld-Control/1.0")
     RfCmd.discover()
     uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
     this_servers_ip = get_local_ip_address()
-    run_server(this_servers_ip, 28282)
+    run_server(this_servers_ip, arglist.localport)
 
