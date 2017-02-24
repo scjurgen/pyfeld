@@ -36,7 +36,11 @@ from time import sleep
 import logging
 
 LOG_FILENAME = Settings.home_directory()+'/pfserver.log'
-unlink(LOG_FILENAME)
+try:
+    unlink(LOG_FILENAME)
+except:
+    pass
+
 logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG)
 
 logging.debug('This message should go to the log file')
