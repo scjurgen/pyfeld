@@ -1,0 +1,47 @@
+{
+	"intents": [{
+		"intent": "AMAZON.ResumeIntent"
+	},{
+		"intent": "AMAZON.NextIntent"
+	},{
+		"intent": "AMAZON.PreviousIntent"
+	}, {
+		"intent": "AMAZON.PauseIntent"
+	}, {
+		"intent": "SetRoom",
+		"slots": [{
+			"name": "rooms",
+			"type": "LIST_OF_ROOMS"
+		}]
+	}, {
+		"intent": "SearchMusic",
+		"slots": [{
+			"name": "context",
+			"type": "LIST_OF_MUSICAL_CONTEXT"
+		},{
+			"name": "searchwords",
+			"type": "SEARCH_SOMETHING"
+		}]
+	}, {
+		"intent": "PlaySomething",
+		"slots": [{
+			"name": "context",
+			"type": "LIST_OF_MUSICAL_CONTEXT"
+		},{
+			"name": "itemnumber",
+			"type": "AMAZON.NUMBER"
+		}]
+	}, {
+		"intent": "PlayAt",
+		"slots": [{
+			"name": "time",
+			"type": "AMAZON.TIME"
+		},{
+			"name": "context",
+			"type": "LIST_OF_MUSICAL_CONTEXT"
+		},{
+			"name": "itemnumber",
+			"type": "AMAZON.NUMBER"
+		}]
+	}]
+}

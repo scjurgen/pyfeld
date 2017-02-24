@@ -1,0 +1,10 @@
+SetRoom raum {rooms}
+SetRoom aktiviere raum {rooms}
+SetRoom aktiviere {rooms}
+SearchMusic suche {context} {searchwords}
+SearchMusic suche {context} {searchwords}
+PlaySomething spiele {context} {itemnumber}
+PlaySomething spiele {context} {itemnumber}
+PlayAt spiele um {time} {context} {itemnumber}
+PlayAt spiele ab {time} {context} {itemnumber}
+PlayAt spiele wenn es {time} ist {context} {itemnumber}
