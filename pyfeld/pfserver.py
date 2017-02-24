@@ -1,6 +1,38 @@
 #!/usr/bin/env python3
-
 """
+C 0/My Music/Artists * Artists
+C 0/My Music/Albums * Albums
+C 0/My Music/Genres * Genres
+C 0/My Music/Composers * Composers
+C 0/My Music/ByFolder * By Folder
+C 0/My Music/RecentlyAdded * Recently Added
+C 0/My Music/AllTracks * All Tracks
+C 0/My Music/Favorites * Raumfeld Favourites
+C 0/My Music/Search * Search
+
+C 0/Playlists/MyPlaylists * Raumfeld Playlists
+C 0/Playlists/Imported * Imported Playlists
+C 0/Playlists/Shuffles * Shuffles
+
+C 0/Favorites/MyFavorites * Favourites
+C 0/Favorites/RecentlyPlayed * Last Played
+C 0/Favorites/MostPlayed * Personal Trends
+
+C 0/Tidal/New * New
+C 0/Tidal/Moods * Playlists
+C 0/Tidal/Recommended * Recommended
+C 0/Tidal/Genres * Genres
+C 0/Tidal/TopLists * Charts
+C 0/Tidal/MyWiMP * My Music
+C 0/Tidal/Search * Search
+C 0/Tidal/Favorites * Raumfeld Favourites
+
+C 0/RadioTime/CategoryMusic * Music
+C 0/RadioTime/CategoryTalk * Talk
+C 0/RadioTime/CategorySports * Sports
+C 0/RadioTime/LocalRadio * Local
+C 0/RadioTime/Favorites * Raumfeld Favourites
+C 0/RadioTime/Search * Search
 
 
 http://172.31.0.10:28282/text/play/album/1
@@ -29,21 +61,12 @@ from os import unlink
 
 from pyfeld.settings import Settings
 from pyfeld.upnpCommand import UpnpCommand
-from rfcmd import RfCmd
+from pyfeld.rfcmd import RfCmd
 from socket import *
 from time import sleep
 
 import logging
 
-LOG_FILENAME = Settings.home_directory()+'/pfserver.log'
-try:
-    unlink(LOG_FILENAME)
-except:
-    pass
-
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG)
-
-logging.debug('This message should go to the log file')
 
 def get_template(filename):
     with open(filename, "rb") as f:
@@ -95,6 +118,8 @@ s&p -> keep lastlist
 save last: room, list, volume, song
 """
 
+list_of_actions = []
+
 class Model:
     def __init__(self):
         self.data_dict = dict()
@@ -145,6 +170,9 @@ def get_template(filename):
         r = f.read()
     return r.decode("utf-8")
 
+
+def tellme_search_pathes():
+    return ['album', 'my music', 'artist', 'composer', 'all']
 
 def create_search_path(origin, where):
     if origin.lower() in ["mymusic", "my%20music", "usb", "music"]:
@@ -236,17 +264,43 @@ def createzone_if_room_unassigned(roomName):
         RfCmd.discover()
 
 
-def handle_volume(arg1, arg2):
+def human_handle_volume(val):
+    if is_an_int(val):
+        return ['absolute', int(val)]
+    if val == 'low':
+        return ['absolute', 20]
+    if val == 'medium':
+        return ['absolute', 40]
+    if val == 'high':
+        return ['absolute', 60]
+    if val == 'whisper':
+        return ['absolute', 10]
+    if val == 'loud':
+        return ['absolute', 70]
+    if val == 'lower':
+        return ['relative', -5]
+    if val == 'much lower':
+        return ['relative', -20]
+    if val == 'higher':
+        return ['relative', 5]
+    if val == 'much higher':
+        return ['relative', 20]
+    return None
+
+
+def handle_volume(arg1, arg2=''):
     get_volume = False
     if arg1 == "":
         get_volume = True
-    elif is_an_int(arg1) and arg2 == "":
-        value = int(arg1)
-    elif is_an_int(arg2):
-        handle_room(arg1)
-        value = int(arg2)
-    room_name = model.get_state('room')
-
+    else:
+        value = human_handle_volume(arg1)
+        if value is not None and arg2 == "":
+            pass
+        else:
+            value = human_handle_volume(arg2)
+            if value is not None and arg2 == "":
+                handle_room(arg1)
+    room_name = model.get_state('lastroom')
     createzone_if_room_unassigned(room_name)
 
     zone_index = RfCmd.get_room_zone_index(room_name)
@@ -254,71 +308,132 @@ def handle_volume(arg1, arg2):
     udn = RfCmd.get_room_udn(room_name)
     if get_volume:
         volume = uc.get_room_volume(udn, "plain")
-        result = "Volume in room {} is {}".format(room_name, volume)
+        result = "Lautstärke im Raum {} ist {}".format(room_name, volume)
         dict_result = {"result": volume}
     else:
-        uc.set_room_volume(udn, value)
-        result = "Volume {} set in room {}".format(value, room_name)
-        dict_result = {"result": value}
+        if value[0] == 'relative':
+            volume = int(uc.get_room_volume(udn, "plain"))
+            volume += value[1]
+            if volume < 0:
+                volume = 0
+            elif volume > 100:
+                volume = 100
+        else:
+            volume = value[1]
+        uc.set_room_volume(udn, volume)
+        result = "Lautstärke {} in Raum {}".format(volume, room_name)
+        dict_result = {"result": volume}
     return json.dumps(dict_result), result
 
 
-def play(what, which, room):
-    if room != '':
-        model.set_state('lastroom', room)
-    else:
-        room = model.get_state('lastroom')
-    if what == 'localradio':
-        browse_query = "0/RadioTime/LocalRadio"
-        uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
-        jsonResult = uc_media.browse_recursive_children(browse_query, 0, "json")
-        real_json = json.loads(jsonResult)
-        if len(real_json) > 0:
-            if is_an_int(which):
-                song = real_json[int(which)]['idPath']
-                play_this(song)
-                result = "Ich spiele jetzt {}".format(real_json[int(which)]['title'])
-        return "[]", result
+def play_browse_content(browse_query, onebased_index, room_name):
+    uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
+    jsonResult = uc_media.browse_recursive_children(browse_query, 0, "json")
+    real_json = json.loads(jsonResult)
+    if len(real_json) > 0:
+        if is_an_int(onebased_index):
+            model.set_state("currentlist", real_json)
+            song = real_json[int(onebased_index)]['idPath']
+            play_this(song)
+            result = "Es spielt jetzt {} in raum {}".format(real_json[int(onebased_index)]['title'], room_name)
+    return "[]", result
 
-    if what == 'station':
-        udn = RfCmd.get_udn_from_renderer_by_room(room)
-        if udn is None:
-            return "[]", "Ein Fehler ist aufgetreten. Renderer fuer raum {} wurde nicht gefunden. Mist!".format(room)
-        browse_query = "0/Renderers/{0}/StationButtons".format(udn)
-        uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
-        jsonResult = uc_media.browse_recursive_children(browse_query, 0, "json")
-        real_json = json.loads(jsonResult)
-        if len(real_json) > 0:
-            if is_an_int(which):
-                song = real_json[int(which)]['idPath']
-                play_this(song)
-                result = "Ich spiele jetzt {}".format(real_json[int(which)]['title'])
-        return "[]", result
-    itemIndex = what + " " + str(which)
-    try:
-        obj = model.get_state(itemIndex)
-        play_this(obj['idPath'])
-        return obj, "playing {0}".format(obj['title'])
-    except:
-        return "[]", "Sorry! Couldn't play {0} {1} in room {2}".format(what, which, room)
+
+def play_station(onebased_index, room_name):
+    udn = RfCmd.get_udn_from_renderer_by_room(room_name)
+    if udn is None:
+        return "[]", "Ein Fehler ist aufgetreten. Renderer fuer Raum {} wurde nicht gefunden. Mist!".format(room_name)
+    browse_query = "0/Renderers/{0}/StationButtons".format(udn)
+    uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
+    jsonResult = uc_media.browse_recursive_children(browse_query, 0, "json")
+    real_json = json.loads(jsonResult)
+    if len(real_json) > 0:
+        if is_an_int(onebased_index):
+            model.set_state("currentlist", real_json)
+            song = real_json[int(onebased_index)]['idPath']
+            play_this(song)
+            result = "Es spielt jetzt {} in raum {}".format(real_json[int(onebased_index)]['title'], room_name)
+    return "[]", result
+
+
+def play(what, onebased_index, room_name):
+    if room_name != '':
+        model.set_state('lastroom', room_name)
+    else:
+        room_name = model.get_state('lastroom')
+    createzone_if_room_unassigned(room_name)
+    if what == 'radio':
+        return play_browse_content("0/RadioTime/LocalRadio", onebased_index, room_name)
+    elif what == 'station':
+        return play_station(onebased_index, room_name)
+    elif what in ['mostplayed', 'lieblings musik']:
+        return play_browse_content("0/Favorites/MostPlayed", onebased_index, room_name)
+#    itemIndex = " " + str(onebased_index)
+#    try:
+#        obj = model.get_state(itemIndex)
+#        play_this(obj['idPath'])
+#        return obj, "playing {0}".format(obj['title'])
+#    except:
+    return "[]", "Sorry! Couldn't play {0} {1} in room {2}".format(what, onebased_index, room_name)
+
 
 def get_status():
     text = RfCmd.get_info(0, 'text')
     json = RfCmd.get_info(0, 'json')
     return json, text
 
+def handle_transportaction(action):
+    zoneIndex = RfCmd.get_room_zone_index(model.get_state('lastroom'))
+    uc = UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
+    if action == 'stop':
+        uc.stop()
+    if action in ['next', 'weiter']:
+        uc.next()
+    if action == ['prev', 'vorher','vorheriges']:
+        uc.previous()
+    if action == 'pause':
+        uc.pause()
+    return "[]", "ok"
+
+
+def handle_action(action):
+    if action == 'leiser':
+        return handle_volume('lower')
+    if action == 'lauter':
+        return handle_volume('higher')
+    if action == 'leise':
+        return handle_volume('low')
+    if action == 'laut':
+        return handle_volume('high')
+    if action in ['stop', 'next', 'prev', 'pause', 'weiter', 'vorher']:
+        return handle_transportaction(action)
+
+    return "[]", "Das weiss raumfeld nicht? Das ist wirklich doof, nicht wahr?! Frage Juergen dass er das macht!"
+
+def play_at(time_point, what, index):
+    list_of_actions.append([time_point, 'play', what, index])
+    return "[]", "Ok! Um {} spiele ich dann {} {}, aber bitte ... nicht erschrecken!".format(time_point, what, int(index)+1)
+
 def handle_room(room_name):
     room_dict = {'room': room_name+' not found'}
-    textresult = "The Room " + room_name + " has not been found!"
+    found = False
     zoneIndex = RfCmd.get_room_zone_index(room_name)
     if zoneIndex != -1:
         if RfCmd.is_unassigned_room(room_name):
             udn = RfCmd.get_room_udn(room_name)
-            #raumfeld_host_device.create_zone_with_rooms(rooms)
+            #raumfeAld_host_device.create_zone_with_rooms(rooms)
             #RfCmd.create_zone(roomName)
         model.set_state('lastroom', room_name)
         textresult = room_name + " is active"
         room_dict = {'room': room_name+' is active'}
+        found = True
+
+    if not found:
+        textresult = "Der Raum " + room_name + " ist nicht auffindbar!"
+        output = RfCmd.get_rooms(0, "plain")
+        output = output.replace("\n", ", ")
+        textresult += " Wir haben hier: " + output
+
     return json.dumps(room_dict), textresult
 
 
@@ -334,6 +449,8 @@ def handle_path_request(path):
         if request_format in ['text', 'json']:
             if components[2] == 'room':
                 json_result, text_result = handle_room(components[3])
+            elif components[2] == 'action':
+                json_result, text_result = handle_action(components[3])
             elif components[2] == 'volume':
                 json_result, text_result = handle_volume(components[3], components[4])
             elif components[2] == 'searchandplay':
@@ -342,6 +459,8 @@ def handle_path_request(path):
                 json_result, text_result = search(components[3], components[4], components[5])
             elif components[2] == 'play':
                 json_result, text_result = play(components[3], components[4], components[5])
+            elif components[2] == 'playat':
+                json_result, text_result = play_at(components[3], components[4], components[5])
             elif components[2] == 'status':
                 json_result, text_result = get_status()
 
@@ -443,11 +562,11 @@ def call_forwarder(host, port):
         try:
             tn = telnetlib.Telnet(host, port)
         except:
-            print("no telnet server {}:{}".format(host, port))
+            print("no server {}:{}".format(host, port))
             sleep(10)
             continue
         try:
-            print("connected to telnet server {}:{}".format(host, port))
+            print("connected to server {}:{}".format(host, port))
 
             tn.read_until(b"login:")
             tn.write(b"#id scjurgen\n")
@@ -479,8 +598,22 @@ def call_forwarder(host, port):
             sleep(1)
 
 
+def timed_action():
+    global list_of_actions
+    while 1:
+        current_time = datetime.now().strftime('%H:%M')
+        print(current_time)
+        for value in list_of_actions:
+            if value[0] == current_time:
+                value[0] = 'done'
+                if value[1] == 'play':
+                    play(value[2], value[3], "")
+                print(list_of_actions)
+        sleep(10)
+
 def run_server(host, port):
     threading.Thread(target=scan_raumfeld).start()
+    threading.Thread(target=timed_action).start()
     try:
         print("Starting json server {}:{}".format(host, int(port)))
         server = HTTPServer((host, int(port)), RequestHandler)
@@ -489,16 +622,25 @@ def run_server(host, port):
         print("run_Server error:"+str(e))
 
 
+
 def get_local_ip_address():
     s = socket(AF_INET, SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
     return s.getsockname()[0]
 
 
-if __name__ == "__main__":
+def run_main():
+    global uc_media
+
+    LOG_FILENAME = Settings.home_directory() + '/pfserver.log'
+    unlink(LOG_FILENAME)
+    logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG)
+
+    logging.debug('This message should go to the log file')
+
     parser = argparse.ArgumentParser(description='pfserver,A.K.A. Raumfeldserver with pyfeld.')
     parser.add_argument('--telnetserverip', default="127.0.0.1", help='Address of telnet server in the cloud')
-    parser.add_argument('--telnetserverport', default='4445', help='Port of telnet server in the cloud')
+    parser.add_argument('--telnetserverport', default='24445', help='Port of telnet server in the cloud')
     parser.add_argument('--localport', default='8088', help='local port for eventual rest interface')
     arglist = parser.parse_args()
 
@@ -509,3 +651,8 @@ if __name__ == "__main__":
     uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
     this_servers_ip = get_local_ip_address()
     run_server(this_servers_ip, arglist.localport)
+
+if __name__ == "__main__":
+    run_main()
+
+

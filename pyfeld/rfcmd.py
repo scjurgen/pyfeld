@@ -21,7 +21,7 @@ from pyfeld.getRaumfeld import RaumfeldDeviceSettings
 from pyfeld.raumfeldHandler import RaumfeldHandler
 from pyfeld.didlInfo import DidlInfo
 
-version = "0.9.9"
+version = "0.9.11"
 
 
 class InfoList:
@@ -107,7 +107,6 @@ class RfCmd:
         s += '&md=0'
         return s
 
-
     @staticmethod
     def build_dlna_play_single(udn, server_type, path):
         s = "dlna-playsingle://" + quote(udn)
@@ -115,7 +114,6 @@ class RfCmd:
         s += 'sid=' + quote(server_type)
         s += '&iid=' + quote(path)
         return s
-
 
     @staticmethod
     def is_unassigned_room(roomName):
@@ -126,7 +124,6 @@ class RfCmd:
                         if roomName == room['name']:
                             return True
         return False
-
 
     @staticmethod
     def get_unassigned_rooms(verbose, format):
