@@ -17,7 +17,7 @@ else:
 
 setup(
     name='pyfeld',
-    version='0.9.9',
+    version='0.9.11',
     author='Jürgen Schwietering',
     author_email='scjurgen@yahoo.com',
     description='Raumfeld controlled by python scripts',
@@ -45,6 +45,7 @@ setup(
             'pyfeld=pyfeld.rfcmd:run_main',
             'pyfeldui=pyfeld.tkui:run_main',
             'pyfeldmacro=pyfeld.rfmacro:run_main',
+            'pfserver=pyfeld.pfserver:run_main',
         ],
     }
 )

@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
+"""
+http://62.75.216.162:24443/amzn1.ask.account.AHYHW2CISNL5BA64VV7VNSJWYB3PNPWV5DRZCLUQLX46KYGAVJNPORBXUDOAVRLSVEEYYXFK3XYIEJHA6SM6WKBHIKTY6E4WD3NXB4VVJHDIEBGDDU5YBBKHDQRXLNB3H55LIMNZKBZD5MVYTY3UC3V4L7IJETPPW6UA7B5YBDF3GFJCY7MPYCCQC5LSAI4WSQEEZVXBZLZILBA/room/
+"""
 
+import json
 import mimetypes
 import re
 import socketserver
 import signal
+import ssl
 import sys
 import threading
 
@@ -15,21 +20,21 @@ from time import sleep
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
-
 class RequestsStore:
     def __init__(self, id, request):
         self.id = id
         self.request = request
         self.expecting_data = False
+        self.next_response = False
         self.running_id = 0
         self.next_keep_alive = 10
+        self.next_request = None
 
 clients = dict()
 
 
-
 def get_base_port():
-    return 24443
+    return 24443 
 
 
 def get_template(filename):
@@ -42,6 +47,15 @@ rewrite_pages = [  # const
     ['^/(.*)(html|ico|js|ttf|svg|woff|eot|otf|css|less|map).*$', './\\1\\2'],
     ['^/$', './index.html']
 ]
+
+def translate_id(user_id):
+    print("translate_id {}".format(user_id))
+    s = open("alexa-forwardermaps.json", 'r').read()
+    map_of_ids = json.loads(s)
+    try:
+        return map_of_ids[user_id]   
+    except:
+        return None
 
 
 class RequestHandler(BaseHTTPRequestHandler):
@@ -142,16 +156,24 @@ def send_infos(path):
     global clients
     try:
         r = path.split('/', 2)
-        user_id = r[1]
+        user_id = translate_id(r[1])
+        print("Voice message from user {}".format(user_id))
         clients[user_id].next_keep_alive = 10
         clients[user_id].expecting_data = True
         clients[user_id].running_id += 1
-        msg = "#alexa {} {}\n".format(clients[user_id].running_id, path[len(user_id)+1:])
+        msg = "#alexa {} /text{}\n".format(clients[user_id].running_id, path[len(r[1])+1:])
         print("sending msg: " + msg)
-        clients[user_id].request.sendall(bytearray(msg.encode('Utf-8')))
-        print("waiting for response")
-        response_data = clients[user_id].request.recv(1500).decode('utf-8')
-        print("got response from pfserver: '{}'".format(response_data))
+        clients[user_id].next_response = None
+        clients[user_id].next_request = bytearray(msg.encode('Utf-8'))
+        sleep(1)
+        while clients[user_id].next_response is None:
+            print("waiting for response")
+            sleep(1)
+        response_data = clients[user_id].next_response
+
+#        return "ok"
+#        response_data = clients[user_id].request.recv(1500).decode('utf-8')
+        print("####got response from pfserver: '{}'".format(response_data))
         if response_data.startswith("#ack {} ".format(clients[user_id].running_id)):
             clients[user_id].expecting_data = False
             return response_data.split(" ", 2)[2]
@@ -169,9 +191,13 @@ def scan_raumfeld():
     global clients
     while 1:
         for key, value in clients.items():
+            if value.next_request is not None:
+                value.next_response = None
+                value.request.sendall(value.next_request)
+                value.next_request = None
             if value.next_keep_alive == 0:
                 value.next_keep_alive = 10
-                msg = '#keep-alive ' + key + datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + '\n'
+                msg = '#keep-alive ' + key + " " + datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + '\n'
                 print(msg)
                 try:
                     value.request.sendall(bytearray(msg.encode('Utf-8')))
@@ -189,6 +215,7 @@ def signal_handler(signal, frame):
     for key, value in clients.items():
         value.request.close()
     fetcher_server.shutdown()
+    http_server.shutdown()
     sys.exit(0)
 
 
@@ -201,6 +228,7 @@ threading.Thread(target=scan_raumfeld).start()
 
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
     def handle(self):
+        global clients
         print("got a connection from ", self.client_address)
         self.request.settimeout(5)
         user_id = None
@@ -258,7 +286,10 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                     return
 
                 if data.startswith('#ack '):
-                    print("response is {}".format(data[5:]))
+                    clients[user_id].next_response = data
+                    print("response is {}".format(data))
+#                    self.request.send(b'ok\r\n')
+#                    self.request.send(data.encode('utf-8'))
 
                 if end_connection:
                     self.request.sendall(b'bye bye :(\r\n')
@@ -267,6 +298,9 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    pass
+
+class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     pass
 
 
@@ -280,18 +314,18 @@ if __name__ == "__main__":
     socketserver.TCPServer.allow_reuse_address = True
 
     host, server_port = get_local_ip_address(), get_base_port()
-
     fetcher_server = ThreadedTCPServer((host, server_port+2), ThreadedTCPRequestHandler)
-    http_server = HTTPServer((host, server_port), RequestHandler)
+    http_server = ThreadedHTTPServer((host, server_port), RequestHandler)
     print("Started fetcher server as {0}:{1}".format(host, server_port+2))
-    print("Started https server as {0}:{1}".format(host, server_port))
+    print("Started http server as {0}:{1}".format(host, server_port))
+
 
     fetcher_server_thread = threading.Thread(target=fetcher_server.serve_forever)
-    fetcher_server_thread.daemon = True
+#    fetcher_server_thread.daemon = True
     fetcher_server_thread.start()
 
     server_thread = threading.Thread(target=http_server.serve_forever)
-    server_thread.daemon = True
+ #   server_thread.daemon = True
     server_thread.start()
 
     fetcher_server_thread.join()
@@ -302,3 +336,4 @@ if __name__ == "__main__":
     http_server.shutdown()
     http_server.server_close()
     print("stopped all")
+
