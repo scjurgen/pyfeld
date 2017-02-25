@@ -39,7 +39,7 @@
 </head>
 <body>
     <div class="panel panel-default">
-        <div class="panel-heading">Examples</div>
+        <div class="panel-heading">Play examples</div>
         <div class="panel-body">
             <div class="container">
                 <div class="row" >
@@ -49,6 +49,27 @@
                 <div class="row" >
                     <div  class="col-sm-6"><a href="/text/play/station/1">/text/play/station/1</a> </div>
                     <div  class="col-sm-6">play second station button (mapping to real station button is unknown )</div>
+                </div>
+                <div class="row" >
+                    <div  class="col-sm-6"><a href="/text/play/radio/1">/text/play/radio/1</a> </div>
+                    <div  class="col-sm-6">play second local radio station</div>
+                </div>
+            </div>
+        </div>
+        <div class="panel-heading">Info examples</div>
+        <div class="panel-body">
+            <div class="container">
+                <div class="row" >
+                    <div  class="col-sm-6"><a href="/text/info/room">/text/info/room</a> </div>
+                    <div  class="col-sm-6">get current room</div>
+                </div>
+                <div class="row" >
+                    <div  class="col-sm-6"><a href="/text/info/title">/text/info/title</a> </div>
+                    <div  class="col-sm-6">get current title</div>
+                </div>
+                <div class="row" >
+                    <div  class="col-sm-6"><a href="/text/info/remaining">/text/info/remaining</a> </div>
+                    <div  class="col-sm-6">get remaining time of track</div>
                 </div>
                 <div class="row" >
                     <div  class="col-sm-6"><a href="/text/status">/text/status</a> </div>
@@ -78,13 +99,30 @@
                     <div  class="col-sm-6"><a href="/text/silence">/text/silence</a> </div>
                     <div  class="col-sm-6">mute</div>
                 </div>
+            </div>
+        </div>
+        <div class="panel-heading">Transport action examples</div>
+        <div class="panel-body">
+            <div class="container">
                 <div class="row" >
-                    <div  class="col-sm-6"><a href="/text/continue">/text/continue</a> </div>
+                    <div  class="col-sm-6"><a href="/text/action/continue">/text/action/continue</a> </div>
                     <div  class="col-sm-6">unmute </div>
                 </div>
                 <div class="row" >
-                    <div  class="col-sm-6"> <a href="/text/volume/decrease">/text/volume/decrease</a> </div>
-                    <div  class="col-sm-6">decrease volume by 5</div>
+                    <div  class="col-sm-6"><a href="/text/action/stop">/text/action/stop</a> </div>
+                    <div  class="col-sm-6">stop </div>
+                </div>
+                <div class="row" >
+                    <div  class="col-sm-6"><a href="/text/action/lower">/text/action/lower</a></div>
+                    <div  class="col-sm-6">lower volume </div>
+                </div>
+                <div class="row" >
+                    <div  class="col-sm-6"><a href="/text/action/higher">/text/action/higher</a></div>
+                    <div  class="col-sm-6">higher volume </div>
+                </div>
+                <div class="row" >
+                    <div  class="col-sm-6"> <a href="/text/volume/decrease">/text/volume/high</a> </div>
+                    <div  class="col-sm-6">set a high volume</div>
                 </div>
             </div>
         </div>

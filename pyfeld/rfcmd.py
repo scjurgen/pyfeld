@@ -21,7 +21,7 @@ from pyfeld.getRaumfeld import RaumfeldDeviceSettings
 from pyfeld.raumfeldHandler import RaumfeldHandler
 from pyfeld.didlInfo import DidlInfo
 
-version = "0.9.11"
+version = "0.9.12"
 
 
 class InfoList:
@@ -434,7 +434,6 @@ class RfCmd:
     def timecode_to_seconds(tc):
         components = tc.split(':')
         return int(components[0]) * 3600 + int(components[1]) * 60 + int(components[2])
-
 
     #unsused variables are used in the evil eval code
     @staticmethod

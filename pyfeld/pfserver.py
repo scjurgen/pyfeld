@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 """
+
+
+urls to implement:
+current/volume
+current/title
+current/room
+
+action/lower
+
 C 0/My Music/Artists * Artists
 C 0/My Music/Albums * Albums
 C 0/My Music/Genres * Genres
@@ -50,6 +59,7 @@ import json
 import mimetypes
 import telnetlib
 import threading
+import html.parser
 
 from concurrent.futures import thread
 from datetime import time, datetime
@@ -58,6 +68,9 @@ from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer, urllib
 
 from os import unlink
+from urllib import parse
+
+from pyfeld.didlInfo import DidlInfo
 
 from pyfeld.settings import Settings
 from pyfeld.upnpCommand import UpnpCommand
@@ -171,6 +184,11 @@ def get_template(filename):
     return r.decode("utf-8")
 
 
+def get_room_uc():
+    zoneIndex = RfCmd.get_room_zone_index(model.get_state('lastroom'))
+    return UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
+
+
 def tellme_search_pathes():
     return ['album', 'my music', 'artist', 'composer', 'all']
 
@@ -209,7 +227,9 @@ def search(origin, where, name):
 
 
 def play_this(song):
-    uc = UpnpCommand(RfCmd.rfConfig['zones'][0]['host'])
+    zoneIndex = RfCmd.get_room_zone_index(model.get_state('lastroom'))
+
+    uc = UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
     udn = RfCmd.rfConfig['mediaserver'][0]['udn']
     transport_data = dict()
     browseresult = uc_media.browsechildren(song)
@@ -303,8 +323,7 @@ def handle_volume(arg1, arg2=''):
     room_name = model.get_state('lastroom')
     createzone_if_room_unassigned(room_name)
 
-    zone_index = RfCmd.get_room_zone_index(room_name)
-    uc = UpnpCommand(RfCmd.rfConfig['zones'][zone_index]['host'])
+    uc = get_room_uc()
     udn = RfCmd.get_room_udn(room_name)
     if get_volume:
         volume = uc.get_room_volume(udn, "plain")
@@ -382,17 +401,16 @@ def get_status():
     json = RfCmd.get_info(0, 'json')
     return json, text
 
+
 def handle_transportaction(action):
-    zoneIndex = RfCmd.get_room_zone_index(model.get_state('lastroom'))
-    uc = UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
     if action == 'stop':
-        uc.stop()
+        get_room_uc().stop()
     if action in ['next', 'weiter']:
-        uc.next()
-    if action == ['prev', 'vorher','vorheriges']:
-        uc.previous()
+        get_room_uc().next()
+    if action == ['prev', 'previous', 'vorher', 'vorheriges']:
+        get_room_uc().previous()
     if action == 'pause':
-        uc.pause()
+        get_room_uc().pause()
     return "[]", "ok"
 
 
@@ -407,16 +425,69 @@ def handle_action(action):
         return handle_volume('high')
     if action in ['stop', 'next', 'prev', 'pause', 'weiter', 'vorher']:
         return handle_transportaction(action)
-
     return "[]", "Das weiss raumfeld nicht? Das ist wirklich doof, nicht wahr?! Frage Juergen dass er das macht!"
 
 def play_at(time_point, what, index):
     list_of_actions.append([time_point, 'play', what, index])
     return "[]", "Ok! Um {} spiele ich dann {} {}, aber bitte ... nicht erschrecken!".format(time_point, what, int(index)+1)
 
+
+
+def handle_info(info):
+    found = False
+    if info == 'room':
+        textresult = model.get_state('lastroom')
+    if info == 'title':
+        results = get_room_uc().get_position_info()
+        print(results)
+        textresult = ""
+        if is_an_int(results['Track']):
+            track = int(results['Track'])
+            if track != 0:
+                textresult = "Track {} ".format(track)
+        if 'DIDL-Lite' in results['TrackMetaData']:
+            didlinfo = DidlInfo(results['TrackMetaData'], True).get_items()
+            print(didlinfo)
+            textresult += didlinfo['title']
+            if didlinfo['album']!='':
+                textresult += " album: "+didlinfo['album']
+        else:
+            textresult += "kein titel gefunden"
+
+        media_info = get_room_uc().get_media_info()
+        try:
+            if 'CurrentURIMetaData' in media_info:
+                didlinfo = DidlInfo(media_info['CurrentURIMetaData']).get_items()
+                media = didlinfo['title']
+                textresult += " info: " + media
+        except:
+            pass
+
+    if info == 'remaining':
+        results = get_room_uc().get_position_info()
+        print(results)
+        duration = RfCmd.timecode_to_seconds(results['TrackDuration'])
+        currentPosition = RfCmd.timecode_to_seconds(results['RelTime'])
+        if duration == 0:
+            textresult = "keine track information vorhanden"
+        else:
+            seconds = duration-currentPosition
+            minutes = int(seconds / 60)
+            seconds = seconds % 60
+            textresult = ""
+            if minutes == 1:
+                textresult = "1 minute"
+            elif minutes:
+                textresult = "{} minutes".format(minutes)
+            if seconds:
+                textresult += " {} seconds".format(seconds)
+
+    return "[]", textresult
+
 def handle_room(room_name):
     room_dict = {'room': room_name+' not found'}
     found = False
+    textresult = room_name + " nicht gefunden"
     zoneIndex = RfCmd.get_room_zone_index(room_name)
     if zoneIndex != -1:
         if RfCmd.is_unassigned_room(room_name):
@@ -439,7 +510,10 @@ def handle_room(room_name):
 
 def handle_path_request(path):
     try:
-        json_result = ""
+        try:
+            path = parse.unquote(path)
+        except Exception as e:
+            return "an error occured: {}".format(e)
         print("requestpath:" + path)
         text_result = "Sorry! Did not understand what you are looking for! Request wants a format like text or json!"
         padded_path = path + "//////"
@@ -447,8 +521,10 @@ def handle_path_request(path):
         components = padded_path.split('/')
         request_format = components[1]
         if request_format in ['text', 'json']:
-            if components[2] == 'room':
+            if components[2] in ['room','raum']:
                 json_result, text_result = handle_room(components[3])
+            elif components[2] == 'info':
+                json_result, text_result = handle_info(components[3])
             elif components[2] == 'action':
                 json_result, text_result = handle_action(components[3])
             elif components[2] == 'volume':
@@ -550,7 +626,7 @@ def scan_raumfeld():
         RfCmd.discover()
         print("done")
         model.save_states()
-        sleep(120)
+        sleep(60)
 
 
 running = True

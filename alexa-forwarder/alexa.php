@@ -122,6 +122,7 @@ $action_response_template = '{
 $request_body = get_request();
 
 log_request();
+log_data($request_body);
 
 $json = json_decode($request_body);
 $user_id = $json->{'session'}->{'user'}->{'userId'};

@@ -11,7 +11,7 @@ class DidlInfo:
         return root_item.getElementsByTagName(tag)[0].childNodes[0].nodeValue
 
     def __init__(self, didl_data, fill_all=False):
-        xml_Root = minidom.parseString(didl_data)
+        xml_Root = minidom.parseString(didl_data.encode('utf-8'))
         try:
             elem = xml_Root.getElementsByTagName("item")[0]
 
