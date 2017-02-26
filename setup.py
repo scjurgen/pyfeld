@@ -38,7 +38,7 @@ setup(
     ],
     #py_modules=['pyfeld','DirBrowse'],
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['requests', 'texttable', 'urllib3'],
+    install_requires=['requests', 'texttable', 'urllib3', 'python-Levenshtein'],
     #packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     entry_points={
         'console_scripts': [
@@ -49,3 +49,4 @@ setup(
         ],
     }
 )
+

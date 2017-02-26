@@ -1,47 +1,41 @@
 #!/usr/bin/env python3
 """
 
-
-urls to implement:
-current/volume
-current/title
-current/room
-
 action/lower
 
-C 0/My Music/Artists * Artists
-C 0/My Music/Albums * Albums
-C 0/My Music/Genres * Genres
-C 0/My Music/Composers * Composers
-C 0/My Music/ByFolder * By Folder
-C 0/My Music/RecentlyAdded * Recently Added
-C 0/My Music/AllTracks * All Tracks
-C 0/My Music/Favorites * Raumfeld Favourites
-C 0/My Music/Search * Search
+0/My Music/Artists * Artists
+0/My Music/Albums * Albums
+0/My Music/Genres * Genres
+0/My Music/Composers * Composers
+0/My Music/ByFolder * By Folder
+0/My Music/RecentlyAdded * Recently Added
+0/My Music/AllTracks * All Tracks
+0/My Music/Favorites * Raumfeld Favourites
+0/My Music/Search * Search
 
-C 0/Playlists/MyPlaylists * Raumfeld Playlists
-C 0/Playlists/Imported * Imported Playlists
-C 0/Playlists/Shuffles * Shuffles
+0/Playlists/MyPlaylists * Raumfeld Playlists
+0/Playlists/Imported * Imported Playlists
+0/Playlists/Shuffles * Shuffles
 
-C 0/Favorites/MyFavorites * Favourites
-C 0/Favorites/RecentlyPlayed * Last Played
-C 0/Favorites/MostPlayed * Personal Trends
+0/Favorites/MyFavorites * Favourites
+0/Favorites/RecentlyPlayed * Last Played
+0/Favorites/MostPlayed * Personal Trends
 
-C 0/Tidal/New * New
-C 0/Tidal/Moods * Playlists
-C 0/Tidal/Recommended * Recommended
-C 0/Tidal/Genres * Genres
-C 0/Tidal/TopLists * Charts
-C 0/Tidal/MyWiMP * My Music
-C 0/Tidal/Search * Search
-C 0/Tidal/Favorites * Raumfeld Favourites
+0/Tidal/New * New
+0/Tidal/Moods * Playlists
+0/Tidal/Recommended * Recommended
+0/Tidal/Genres * Genres
+0/Tidal/TopLists * Charts
+0/Tidal/MyWiMP * My Music
+0/Tidal/Search * Search
+0/Tidal/Favorites * Raumfeld Favourites
 
-C 0/RadioTime/CategoryMusic * Music
-C 0/RadioTime/CategoryTalk * Talk
-C 0/RadioTime/CategorySports * Sports
-C 0/RadioTime/LocalRadio * Local
-C 0/RadioTime/Favorites * Raumfeld Favourites
-C 0/RadioTime/Search * Search
+0/RadioTime/CategoryMusic * Music
+0/RadioTime/CategoryTalk * Talk
+0/RadioTime/CategorySports * Sports
+0/RadioTime/LocalRadio * Local
+0/RadioTime/Favorites * Raumfeld Favourites
+0/RadioTime/Search * Search
 
 
 http://172.31.0.10:28282/text/play/album/1
@@ -49,9 +43,9 @@ http://192.168.2.115:8082/scjurgen/text/search/mymusic/albums/what
 http://192.168.2.115:8082/scjurgen/text/play/album/1
 
 pyfeld -d browse "0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons"
-C 0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons/595 * "Awaken, My Love!"
-+ 0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons/687 * Antenne Brandenburg vom rbb
-+ 0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons/689 * Deutschlandradio Kultur
+0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons/595 * "Awaken, My Love!"
+0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons/687 * Antenne Brandenburg vom rbb
+0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons/689 * Deutschlandradio Kultur
 
 """
 import argparse
@@ -71,6 +65,7 @@ from os import unlink
 from urllib import parse
 
 from pyfeld.didlInfo import DidlInfo
+from pyfeld.matchName import match_something
 
 from pyfeld.settings import Settings
 from pyfeld.upnpCommand import UpnpCommand
@@ -206,6 +201,7 @@ def create_search_path(origin, where):
     path = "0/"+origin+"/Search/" + where
     print("path="+path)
     return path
+
 
 def search(origin, where, name):
     path = create_search_path(origin, where)
@@ -485,6 +481,11 @@ def handle_info(info):
     return "[]", textresult
 
 def handle_room(room_name):
+
+    list = RfCmd.get_rooms(False, 'dict')
+
+    room_name = match_something(room_name, list)
+
     room_dict = {'room': room_name+' not found'}
     found = False
     textresult = room_name + " nicht gefunden"
@@ -541,6 +542,10 @@ def handle_path_request(path):
                 json_result, text_result = get_status()
 
             if request_format == 'text':
+                if text_result is None:
+                    return "Huch! Was war das denn?"
+                if len(text_result) == 0:
+                    return "Huch! Im Nirvana gibt es keine Musik!"
                 return text_result
             if request_format == 'json':
                 return json_result
@@ -551,7 +556,6 @@ def handle_path_request(path):
         if request_format == 'json':
             return json_result
             return "{\"error\":\"{}\"}".format(e)
-
 
 
 class RequestHandler (BaseHTTPRequestHandler):

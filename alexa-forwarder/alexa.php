@@ -57,7 +57,7 @@ function forwarder_request($msg)
     {
         $error = error_get_last();
         log_data("\n#response ".$error['message']);
-        return "Ein Fehler ist aufgetreten: Ist Raum-feld verbunden?";
+        return "Ein Fehler in der Kommunikation ist aufgetreten: Ist dein Raum-feld mit mir verbunden?";
     }
     log_data("\n#response ".$response);
     return $response;
@@ -166,11 +166,30 @@ if ($json->{'request'}->{"type"} == "IntentRequest")
         $result = forwarder_request($user_id."/play/".$context."/".$itemNumber);
         $response_template = str_replace("#response#", $result, $play_response_template);
     }
+    if ($intent->{'name'} == 'PlaySomethingByLetter') {
+        $slots = $intent->{'slots'};
+        $itemNumber = (int)get_slot_value($slots,'itemnumber');
+        $itemNumber -= 1;
+        $context = get_slot_value($slots,'context');
+        $itemletter = get_slot_value($slots,'itemletter');
+        #print("play ".$context." ".$itemNumber);
+        pipe_request($user_id." play ".$context." ".$itemNumber);
+        $result = forwarder_request($user_id."/play/".$context."/".$itemletter"/".$itemNumber);
+        $response_template = str_replace("#response#", $result, $play_response_template);
+    }
     if ($intent->{'name'} == 'SetRoom') {
         $slots = $intent->{'slots'};
         $room = get_slot_value($slots,'rooms');
         pipe_request($user_id." room ".$room);
         $result = forwarder_request($user_id."/room/".$room);
+        $response_template = str_replace("#response#", $result, $room_response_template);
+    }
+    if ($intent->{'name'} == 'SetRoomIndex') {
+        $slots = $intent->{'slots'};
+        $itemNumber = (int)get_slot_value($slots,'itemnumber');
+        $itemNumber -= 1;
+        pipe_request($user_id." room ".$itemNumber);
+        $result = forwarder_request($user_id."/room/".$itemNumber);
         $response_template = str_replace("#response#", $result, $room_response_template);
     }
     if ($intent->{'name'} == 'GeneralAction') {

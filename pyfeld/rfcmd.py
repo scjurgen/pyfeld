@@ -245,6 +245,8 @@ class RfCmd:
                 result = result[:-1] + ']\n'
             else:
                 result = '[]\n'
+        elif format == 'dict':
+            return room_list
         else:
             for r in room_list:
                 result += r + "\n"

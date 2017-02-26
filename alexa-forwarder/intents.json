@@ -8,10 +8,22 @@
 	}, {
 		"intent": "AMAZON.PauseIntent"
 	}, {
+		"intent": "GeneralAction",
+		"slots": [{
+			"name": "action",
+			"type": "LIST_OF_ACTIONS"
+		}]
+	}, {
 		"intent": "SetRoom",
 		"slots": [{
 			"name": "rooms",
 			"type": "LIST_OF_ROOMS"
+		}]
+	}, {
+		"intent": "SetRoomIndex",
+		"slots": [{
+			"name": "itemnumber",
+			"type": "AMAZON.NUMBER"
 		}]
 	}, {
 		"intent": "SearchMusic",
@@ -27,6 +39,18 @@
 		"slots": [{
 			"name": "context",
 			"type": "LIST_OF_MUSICAL_CONTEXT"
+		},{
+			"name": "itemnumber",
+			"type": "AMAZON.NUMBER"
+		}]
+	}, {
+		"intent": "PlaySomethingByLetter",
+		"slots": [{
+			"name": "context",
+			"type": "LIST_OF_MUSICAL_CONTEXT"
+		},{
+			"name": "itemletter",
+			"type": "AMAZON.LETTER"
 		},{
 			"name": "itemnumber",
 			"type": "AMAZON.NUMBER"
