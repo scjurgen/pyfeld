@@ -1,5 +1,7 @@
 # coding=UTF-8
 
+this_version = '0.9.13'
+
 import os
 from setuptools import setup, find_packages
 from codecs import open
@@ -17,7 +19,7 @@ else:
 
 setup(
     name='pyfeld',
-    version='0.9.12',
+    version=this_version,
     author='Jürgen Schwietering',
     author_email='scjurgen@yahoo.com',
     description='Raumfeld controlled by python scripts',
@@ -38,7 +40,7 @@ setup(
     ],
     #py_modules=['pyfeld','DirBrowse'],
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['requests', 'texttable', 'urllib3', 'python-Levenshtein'],
+    install_requires=['requests', 'texttable', 'urllib3', 'python-Levenshtein','python-daemon'],
     #packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     entry_points={
         'console_scripts': [

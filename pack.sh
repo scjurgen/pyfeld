@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-versionsetup=`grep "version=" setup.py | sed "s/^.*version=['\"]\([0-9ab.]*\)['\"].*$/\\1/g"`
+versionsetup=`grep "this_version =" setup.py | sed "s/^.*version = ['\"]\([0-9ab.]*\)['\"].*$/\\1/g"`
 versionrfcmd=`grep "version =" pyfeld/rfcmd.py | sed "s/^.*version = ['\"]\([0-9ab.]*\)['\"].*$/\\1/g" `
 
 echo rfcmd: ${versionrfcmd}

@@ -56,13 +56,21 @@ import threading
 import html.parser
 
 from concurrent.futures import thread
-from datetime import time, datetime
+from datetime import time, datetime, timedelta
 
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer, urllib
 
 from os import unlink
 from urllib import parse
+
+import re
+from xml.dom import minidom
+
+import requests
+from pyfeld.xmlHelper import XmlHelper
+
+from pyfeld.raumfeldHandler import RaumfeldHandler
 
 from pyfeld.didlInfo import DidlInfo
 from pyfeld.matchName import match_something
@@ -128,6 +136,100 @@ save last: room, list, volume, song
 
 list_of_actions = []
 
+
+class EventListenerAtom:
+    def __init__(self, sid, timeout, net_location, service, udn):
+        self.sid = sid
+        self.net_location = net_location
+        self.service = service
+        self.time_created = datetime.now()
+        self.timeout_at = self.time_created + timedelta(0, int(timeout))
+        self.timeout = timeout
+        self.udn = udn
+
+
+class SubscriptionHandler:
+
+    def __init__(self, raumfeld_handler):
+        self.raumfeld_handler = raumfeld_handler
+        self.subscription_interval = 300
+        self.subscriptions = dict()
+
+    def __is_subscribed(self, nl, service, udn):
+        t_now = datetime.now()
+        for sid, atom in self.subscriptions.items():
+            if atom.service == service and atom.net_location == nl and udn == atom.udn:
+                if atom.timeout_at < t_now: #this subscription expires soon
+                    return False
+                return True
+        return False
+
+    def __subscribe_service_list(self, local_ip, udn, upnp_service):
+        global arglist
+        try:
+            for upnp in upnp_service.services_list:
+                nl = upnp_service.network_location
+                if not self.__is_subscribed(nl, upnp['eventSubURL'], udn):
+                    self.create_new_subscription(local_ip, arglist.localport, nl, upnp['eventSubURL'], udn)
+        except Exception as e:
+            print("__subscribe_service_list error {0}".format(e))
+
+    def subscription_thread(self, delay_value):
+        global arglist
+        local_ip = get_local_ip_address()
+        while True:
+            sleep(2)
+            for media_server in self.raumfeld_handler.media_servers:
+                self.__subscribe_service_list(local_ip, media_server.udn, media_server.upnp_service)
+            for config_dev in self.raumfeld_handler.config_device:
+                self.__subscribe_service_list(local_ip, config_dev.udn, config_dev.upnp_service)
+            for rf_dev in self.raumfeld_handler.raumfeld_device:
+                self.__subscribe_service_list(local_ip, rf_dev.udn, rf_dev.upnp_service)
+
+            for zone in self.raumfeld_handler.get_active_zones():
+                try:
+                    if zone.services is None:
+                        continue
+                    for upnp_service in zone.services.services_list:
+                        nl = zone.services.network_location
+                        if not self.__is_subscribed(nl, upnp_service['eventSubURL'], media_server.udn):
+                            self.create_new_subscription(local_ip, arglist.localport, nl, upnp_service['eventSubURL'], zone.get_udn() )
+                    if zone.rooms is None:
+                        continue
+                    for room in zone.rooms:
+                        for upnp_service in room.upnp_service.services_list:
+                            nl = room.upnp_service.get_network_location()
+                            if not self.__is_subscribed(nl, upnp_service['eventSubURL'], room.get_udn()):
+                                self.create_new_subscription(local_ip, arglist.localport, nl, upnp_service['eventSubURL'], room.get_udn())
+                except Exception as e:
+                    print("subscription error {0}".format(e))
+            sleep(delay_value-5)
+
+    def create_new_subscription(self, local_ip, port, net_location, service, udn):
+
+        callback_url = "<http://" + local_ip + ":" + str(port) + "/"+udn[5:]+">"
+        headers = {"Host": net_location,
+                   "Callback": callback_url,
+                   "NT": "upnp:event",
+                   "Timeout": "Second-" + str(self.subscription_interval),
+                   "Accept-Encoding": "gzip, deflate",
+                   "User-Agent": "xrf/1.0",
+                   "Connection": "Keep-Alive",
+                   }
+        print("SUBSCRIBE http://"+net_location+service)
+        print("callback url "+callback_url)
+        response = requests.request('SUBSCRIBE', "http://"+net_location+service, headers=headers, data="")
+        sid = response.headers['sid']
+        seconds_search = re.search("Second-([0-9]+)", response.headers['timeout'], re.IGNORECASE)
+        if seconds_search:
+            timeout = seconds_search.group(1)
+        else:
+            timeout = "300"
+
+        print("subscription: " + net_location+service + ":" + str(response))
+        self.subscriptions[sid] = EventListenerAtom(sid, timeout, net_location, service, udn)
+
+
 class Model:
     def __init__(self):
         self.data_dict = dict()
@@ -187,6 +289,7 @@ def get_room_uc():
 def tellme_search_pathes():
     return ['album', 'my music', 'artist', 'composer', 'all']
 
+
 def create_search_path(origin, where):
     if origin.lower() in ["mymusic", "my%20music", "usb", "music"]:
         origin = "My Music"
@@ -204,8 +307,10 @@ def create_search_path(origin, where):
 
 
 def search(origin, where, name):
+    if name == '':
+        return "[]", "Empty request"
     path = create_search_path(origin, where)
-    title = "dc:title contains " + name
+    title = "dc:title contains \"" + name + "\""
     uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
     jsonResult = uc_media.search(path, title, "json")
     real_json = json.loads(jsonResult)
@@ -353,6 +458,18 @@ def play_browse_content(browse_query, onebased_index, room_name):
             result = "Es spielt jetzt {} in raum {}".format(real_json[int(onebased_index)]['title'], room_name)
     return "[]", result
 
+def browse_content(browse_query, onebased_index):
+    uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
+    jsonResult = uc_media.browse_recursive_children(browse_query, 0, "json")
+    real_json = json.loads(jsonResult)
+    result = ""
+    index = 0
+    for item in real_json:
+        index += 1
+        result += str(index) + ": "+item['title']+", "
+
+    return "[]", result
+
 
 def play_station(onebased_index, room_name):
     udn = RfCmd.get_udn_from_renderer_by_room(room_name)
@@ -369,6 +486,14 @@ def play_station(onebased_index, room_name):
             play_this(song)
             result = "Es spielt jetzt {} in raum {}".format(real_json[int(onebased_index)]['title'], room_name)
     return "[]", result
+
+
+def songs_list(what, onebased_index):
+    if what == 'radio':
+        return browse_content("0/RadioTime/LocalRadio", onebased_index)
+    elif what in ['mostplayed', 'lieblings musik']:
+        return browse_content("0/Favorites/MostPlayed", onebased_index)
+    return "[]", "Sorry! Couldn't list {0} {1}".format(what, onebased_index)
 
 
 def play(what, onebased_index, room_name):
@@ -411,26 +536,32 @@ def handle_transportaction(action):
 
 
 def handle_action(action):
-    if action == 'leiser':
+    if action in ['leiser', 'lower']:
         return handle_volume('lower')
-    if action == 'lauter':
+    if action in ['lauter', 'higher', 'louder']:
         return handle_volume('higher')
-    if action == 'leise':
+    if action in ['leise', 'low']:
         return handle_volume('low')
-    if action == 'laut':
+    if action in ['laut', 'loud']:
         return handle_volume('high')
     if action in ['stop', 'next', 'prev', 'pause', 'weiter', 'vorher']:
         return handle_transportaction(action)
     return "[]", "Das weiss raumfeld nicht? Das ist wirklich doof, nicht wahr?! Frage Juergen dass er das macht!"
+
 
 def play_at(time_point, what, index):
     list_of_actions.append([time_point, 'play', what, index])
     return "[]", "Ok! Um {} spiele ich dann {} {}, aber bitte ... nicht erschrecken!".format(time_point, what, int(index)+1)
 
 
-
 def handle_info(info):
     found = False
+    if info == 'status':
+        textresult = RfCmd.get_info(0, "plain")
+    if info == 'rooms':
+        textresult = RfCmd.get_rooms(0, "plain")
+    if info == 'zones':
+        textresult = RfCmd.get_zone_info("plain")
     if info == 'room':
         textresult = model.get_state('lastroom')
     if info == 'title':
@@ -477,15 +608,12 @@ def handle_info(info):
                 textresult = "{} minutes".format(minutes)
             if seconds:
                 textresult += " {} seconds".format(seconds)
-
     return "[]", textresult
 
+
 def handle_room(room_name):
-
     list = RfCmd.get_rooms(False, 'dict')
-
     room_name = match_something(room_name, list)
-
     room_dict = {'room': room_name+' not found'}
     found = False
     textresult = room_name + " nicht gefunden"
@@ -522,7 +650,7 @@ def handle_path_request(path):
         components = padded_path.split('/')
         request_format = components[1]
         if request_format in ['text', 'json']:
-            if components[2] in ['room','raum']:
+            if components[2] in ['room', 'raum']:
                 json_result, text_result = handle_room(components[3])
             elif components[2] == 'info':
                 json_result, text_result = handle_info(components[3])
@@ -536,6 +664,8 @@ def handle_path_request(path):
                 json_result, text_result = search(components[3], components[4], components[5])
             elif components[2] == 'play':
                 json_result, text_result = play(components[3], components[4], components[5])
+            elif components[2] == 'list':
+                json_result, text_result = songs_list(components[3], components[4])
             elif components[2] == 'playat':
                 json_result, text_result = play_at(components[3], components[4], components[5])
             elif components[2] == 'status':
@@ -578,18 +708,6 @@ class RequestHandler (BaseHTTPRequestHandler):
         except Exception as e:
             print("handle_get_query error {0}".format(e))
 
-    def handle_infos(self, type):
-        try:
-            if type == 'status':
-                output = RfCmd.get_info(0,  "json")
-            elif type == 'rooms':
-                output = RfCmd.get_rooms(0, "json")
-            elif type == 'zones':
-                output = RfCmd.get_zone_info("json")
-            self.send_json_response(output)
-        except Exception as e:
-            print("handle_get_query error {0}".format(e))
-
     def do_GET(self):
         try:
             if self.path == '/':
@@ -619,6 +737,26 @@ class RequestHandler (BaseHTTPRequestHandler):
             output = "Internal server error:<br/> {0}".format(e)
             self.wfile.write(bytearray(output, 'UTF-8'))
 
+    def do_NOTIFY(self):
+        global needs_to_reload_zone_config
+        global raumfeld_handler
+        content_length = int(self.headers['content-length'])
+        notification = self.rfile.read(content_length)
+        result = minidom.parseString(notification.decode('UTF-8'))
+#        print("\n\n#NOTIFY:\n" + result.toprettyxml())
+        notification_content = XmlHelper.xml_extract_dict(result,
+                                                          ['LastChange',
+                                                           'Revision',
+                                                           'SystemUpdateID',
+                                                           'BufferFilled'])
+        if len(notification_content['LastChange']):
+            if '/Preferences/ZoneConfig/Rooms' in notification_content['LastChange']:
+                needs_to_reload_zone_config = True
+            last_change = minidom.parseString(notification_content['LastChange'])
+            raumfeld_handler.set_subscription_values("uuid:" + self.path[1:], last_change)
+            print("\n\n#NOTIFY LastChange: "+self.path+"\n"+last_change.toprettyxml())
+        self.send_response(200)
+        self.end_headers()
 
 def open_info_channel(ip, port):
     pass
@@ -661,8 +799,6 @@ def call_forwarder(host, port):
                 try:
                     if data.startswith('#keep-alive'):
                         res = '{ "result":"#alive ' + datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + '"}\n'
-    #                    tn.write(b"{ \"result\":\"#ack\"}\n")
-    #                    print(res)
                         tn.write(res.encode('Utf-8'))
                     elif data.startswith('#alexa '):
                         dataset = data.split(' ', 2)
@@ -711,6 +847,8 @@ def get_local_ip_address():
 
 def run_main():
     global uc_media
+    global raumfeld_handler
+    global arglist
 
     LOG_FILENAME = Settings.home_directory() + '/pfserver.log'
     unlink(LOG_FILENAME)
@@ -726,8 +864,14 @@ def run_main():
 
     threading.Thread(target=call_forwarder, args=[arglist.telnetserverip, arglist.telnetserverport]).start()
 
-    #UpnpCommand.overwrite_user_agent("Raumfeld-Control/1.0")
     RfCmd.discover()
+    raumfeld_handler = RaumfeldHandler();
+    subscription_handler = SubscriptionHandler(raumfeld_handler)
+    threads = []
+    t = threading.Thread(target=subscription_handler.subscription_thread, args=(280,))
+    threads.append(t)
+    t.start()
+
     uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
     this_servers_ip = get_local_ip_address()
     run_server(this_servers_ip, arglist.localport)

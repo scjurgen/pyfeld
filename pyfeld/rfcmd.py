@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import unicode_literals
 
+version = "0.9.13"
+
 import json
 import subprocess
 import sys
@@ -21,7 +23,6 @@ from pyfeld.getRaumfeld import RaumfeldDeviceSettings
 from pyfeld.raumfeldHandler import RaumfeldHandler
 from pyfeld.didlInfo import DidlInfo
 
-version = "0.9.12"
 
 
 class InfoList:

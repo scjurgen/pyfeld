@@ -48,15 +48,15 @@ class RaumfeldHandler:
         self.found_protocol_ip = None
 
     def set_active_zones(self, zones, zone_hash):
-        self.active_zones = zones
+        RaumfeldHandler.active_zones = zones
         self.zone_hash = zone_hash
         self.__save_quick_access()
 
     def find_zone_for_room(self, room_name):
         index = 0
         try:
-            for index in range(0, len(self.active_zones)):
-                for room in self.active_zones[index].rooms:
+            for index in range(0, len(RaumfeldHandler.active_zones)):
+                for room in RaumfeldHandler.active_zones[index].rooms:
                     if room.name == room_name:
                         return index
         except Exception as e:
@@ -83,7 +83,7 @@ class RaumfeldHandler:
             result['zoneindex'] = str(index)
 
             if cmd == "volume":
-                self.active_zones[index].set_volume(param_dictionary['value'][0])
+                RaumfeldHandler.active_zones[index].set_volume(param_dictionary['value'][0])
         except Exception as e:
             result['error'] = "set error {0}".format(e)
             err_print("set  error {0}".format(e))
@@ -91,11 +91,11 @@ class RaumfeldHandler:
 
     def get_last_media(self, param_dictionary):
         index = self.get_request_zone(param_dictionary)
-        return self.active_zones[index].media
+        return RaumfeldHandler.active_zones[index].media
 
     def set_media(self, media, param_dictionary):
         index = self.get_request_zone(param_dictionary)
-        self.active_zones[index].set_media(media)
+        RaumfeldHandler.active_zones[index].set_media(media)
 
     def get(self, cmd, param_dictionary):
         result = dict()
@@ -103,7 +103,7 @@ class RaumfeldHandler:
             index = self.get_request_zone(param_dictionary)
             result['get'] = cmd
             result['zoneindex'] = str(index)
-            zone = self.active_zones[index]
+            zone = RaumfeldHandler.active_zones[index]
             result['isplaying'] = zone.is_playing()
             if cmd == "volume":
                 zone.update_volumes()
@@ -132,32 +132,32 @@ class RaumfeldHandler:
             result['zoneindex'] = str(index)
 
             if cmd == "pause":
-                self.active_zones[index].pause()
+                RaumfeldHandler.active_zones[index].pause()
             elif cmd == "stop":
-                self.active_zones[index].stop()
+                RaumfeldHandler.active_zones[index].stop()
             elif cmd == "play":
-                self.active_zones[index].play()
+                RaumfeldHandler.active_zones[index].play()
             elif cmd in ["prev", "previous"]:
-                self.active_zones[index].previous()
+                RaumfeldHandler.active_zones[index].previous()
             elif cmd == "next":
-                self.active_zones[index].next()
+                RaumfeldHandler.active_zones[index].next()
             elif cmd == "seek":
-                self.active_zones[index].seek(param_dictionary['value'][0])
+                RaumfeldHandler.active_zones[index].seek(param_dictionary['value'][0])
             elif cmd == "seekback":
-                self.active_zones[index].seek_backward(10)
+                RaumfeldHandler.active_zones[index].seek_backward(10)
             elif cmd == "seekfwd":
-                self.active_zones[index].seek_forward(10)
+                RaumfeldHandler.active_zones[index].seek_forward(10)
             elif cmd == "fade":
-                self.active_zones[index].set_fade(param_dictionary['vs'][0]
+                RaumfeldHandler.active_zones[index].set_fade(param_dictionary['vs'][0]
                                                   , param_dictionary['ve'][0]
                                                   , param_dictionary['t'][0]
                                                   )
             elif cmd == "loop":
-                self.active_zones[index].set_loop(param_dictionary['cuein'][0]
+                RaumfeldHandler.active_zones[index].set_loop(param_dictionary['cuein'][0]
                                                   , param_dictionary['cueout'][0]
                                                   )
             elif cmd == 'stoploop':
-                self.active_zones[index].terminate_loop = True
+                RaumfeldHandler.active_zones[index].terminate_loop = True
 
         except Exception as e:
             err_print("set action error {0}".format(e))
@@ -427,12 +427,12 @@ class RaumfeldHandler:
         print(str(string_state.encode('utf-8')))
 
     def get_active_zones(self):
-        return self.active_zones
+        return RaumfeldHandler.active_zones
 
     def get_zones_as_dict(self, verbosity=1):
         values = []
         index = 0
-        for zone in self.active_zones:
+        for zone in RaumfeldHandler.active_zones:
             zone_dict = dict()
             try:
                 if zone.udn:
@@ -461,7 +461,7 @@ class RaumfeldHandler:
 
     def get_all_rooms(self):
         room_list = dict()
-        for zone in self.active_zones:
+        for zone in RaumfeldHandler.active_zones:
             try:
                 for room in zone.rooms:
                     room_list.append({"zone": zone.udn, "room": room})
@@ -472,8 +472,8 @@ class RaumfeldHandler:
     def get_current_media(self, param_dictionary):
         try:
             index = self.get_request_zone(param_dictionary)
-            self.active_zones[index].update_media()
-            return self.active_zones[index].media
+            RaumfeldHandler.active_zones[index].update_media()
+            return RaumfeldHandler.active_zones[index].media
         except Exception as e:
             err_print("error get_current_media {0}".format(e))
 
@@ -621,7 +621,7 @@ class RaumfeldHandler:
         values['host'] = str(self.found_protocol_ip)
 
         zone_list = list()
-        for zone in self.active_zones:
+        for zone in RaumfeldHandler.active_zones:
             zone_dict = dict()
             try:
                 zone_dict['host'] = str(zone.soap_host)
