@@ -169,13 +169,13 @@ class RfCmd:
         for zone in RfCmd.rfConfig['zones']:
             if zone['rooms'] is not None:
                 if zone['udn'] == udn:
-                    return zone['name']
+                    return ["Zone", zone['name']]
                 for room in zone['rooms']:
                     if room['udn'] == udn:
-                        return room['name']
+                        return ["Room", room['name']]
                     for renderer in room['room_renderers']:
                         if renderer['udn'] == udn:
-                            return renderer['name']
+                            return ["Renderer",renderer['name']]
         return None
 
     @staticmethod
@@ -313,11 +313,13 @@ class RfCmd:
 
 
     @staticmethod
-    def get_info(verbose, format):
+    def get_info(verbose, format, zero_index=True):
         if format == 'json':
             return json.dumps(RfCmd.rfConfig, sort_keys=True, indent=2) + "\n"
         elif format == 'text':
             i = 0
+            if not zero_index:
+                i += 1
             result = ""
             for zone in RfCmd.rfConfig['zones']:
                 result += "Zone #{0}: {1}; ".format(i, zone['name'])
@@ -329,6 +331,8 @@ class RfCmd:
                 i += 1
         else:
             i = 0
+            if not zero_index:
+                i += 1
             result = ""
             for media_server in RfCmd.rfConfig['mediaserver']:
                 if verbose >= 1:
@@ -337,6 +341,8 @@ class RfCmd:
                     result += "Mediaserver #{0}\n".format(i)
                 i += 1
             i = 0
+            if not zero_index:
+                i += 1
             for zone in RfCmd.rfConfig['zones']:
                 if verbose == 2:
                     result += "Zone #{0} : {1} : {2} -> {3}\n".format(i, zone['name'], str(zone['udn']), zone['host'])
@@ -359,7 +365,7 @@ class RfCmd:
                             elif verbose == 1:
                                 result += "\t\tRenderer '{0}' : {1}\n".format(renderer['name'], renderer['udn'])
                             else:
-                                result += "\t\tRenderer '{0}'\n".format(renderer['name'])   #.
+                                result += "\t\tRenderer '{0}'\n".format(renderer['name'])
                     i += 1
         return result
 

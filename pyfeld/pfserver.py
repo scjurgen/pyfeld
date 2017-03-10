@@ -1,53 +1,5 @@
 #!/usr/bin/env python3
-"""
 
-action/lower
-
-0/My Music/Artists * Artists
-0/My Music/Albums * Albums
-0/My Music/Genres * Genres
-0/My Music/Composers * Composers
-0/My Music/ByFolder * By Folder
-0/My Music/RecentlyAdded * Recently Added
-0/My Music/AllTracks * All Tracks
-0/My Music/Favorites * Raumfeld Favourites
-0/My Music/Search * Search
-
-0/Playlists/MyPlaylists * Raumfeld Playlists
-0/Playlists/Imported * Imported Playlists
-0/Playlists/Shuffles * Shuffles
-
-0/Favorites/MyFavorites * Favourites
-0/Favorites/RecentlyPlayed * Last Played
-0/Favorites/MostPlayed * Personal Trends
-
-0/Tidal/New * New
-0/Tidal/Moods * Playlists
-0/Tidal/Recommended * Recommended
-0/Tidal/Genres * Genres
-0/Tidal/TopLists * Charts
-0/Tidal/MyWiMP * My Music
-0/Tidal/Search * Search
-0/Tidal/Favorites * Raumfeld Favourites
-
-0/RadioTime/CategoryMusic * Music
-0/RadioTime/CategoryTalk * Talk
-0/RadioTime/CategorySports * Sports
-0/RadioTime/LocalRadio * Local
-0/RadioTime/Favorites * Raumfeld Favourites
-0/RadioTime/Search * Search
-
-
-http://172.31.0.10:28282/text/play/album/1
-http://192.168.2.115:8082/scjurgen/text/search/mymusic/albums/what
-http://192.168.2.115:8082/scjurgen/text/play/album/1
-
-pyfeld -d browse "0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons"
-0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons/595 * "Awaken, My Love!"
-0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons/687 * Antenne Brandenburg vom rbb
-0/Renderers/uuid:1dfc5e0f-bfcd-40f1-b1cd-0c2fbfb7637a/StationButtons/689 * Deutschlandradio Kultur
-
-"""
 import argparse
 import json
 import mimetypes
@@ -82,17 +34,6 @@ from socket import *
 from time import sleep
 
 import logging
-
-
-def get_template(filename):
-    with open(filename, "rb") as f:
-        r = f.read()
-    return r.decode("utf-8")
-
-rewrite_pages = [  # const
-        ['^/(.*)(html|ico|js|ttf|svg|woff|eot|otf|css|less|map).*$', './html/\\1\\2'],
-        ['^/$', './html/index.html']
-]
 
 
 """
@@ -526,16 +467,23 @@ def get_status():
 def handle_transportaction(action):
     if action == 'stop':
         get_room_uc().stop()
-    if action in ['next', 'weiter']:
+    elif action == 'play':
+        get_room_uc().set_mute(False)
+        get_room_uc().play()
+    elif action in ['next', 'weiter']:
         get_room_uc().next()
-    if action == ['prev', 'previous', 'vorher', 'vorheriges']:
+    elif action == ['prev', 'previous', 'vorher', 'vorheriges']:
         get_room_uc().previous()
-    if action == 'pause':
+    elif action == 'pause':
         get_room_uc().pause()
-    return "[]", "ok"
+    else:
+        return False
+    return True
 
 
 def handle_action(action):
+    if action in ['silence', 'mute']:
+        get_room_uc().set_mute(True)
     if action in ['leiser', 'lower']:
         return handle_volume('lower')
     if action in ['lauter', 'higher', 'louder']:
@@ -544,8 +492,8 @@ def handle_action(action):
         return handle_volume('low')
     if action in ['laut', 'loud']:
         return handle_volume('high')
-    if action in ['stop', 'next', 'prev', 'pause', 'weiter', 'vorher']:
-        return handle_transportaction(action)
+    if handle_transportaction(action):
+        return "[]", "Ok"
     return "[]", "Das weiss raumfeld nicht? Das ist wirklich doof, nicht wahr?! Frage Juergen dass er das macht!"
 
 
@@ -684,9 +632,29 @@ def handle_path_request(path):
         if request_format == 'text':
             return "an error occured: {}".format(e)
         if request_format == 'json':
-            return json_result
             return "{\"error\":\"{}\"}".format(e)
 
+def get_help_page():
+    return """<pre>
+    /text/searchandplay/mymusic/albums/the
+    /text/play/station/1
+    /text/play/radio/1
+    /text/info/room
+    /text/info/title
+    /text/info/remaining
+    /text/status
+    /text/room/kitchen
+    /text/volume/30
+    /text/volume/tv/40
+    /text/volume/increase
+    /text/silence (TBD)
+    /text/action/continue (TBD)
+    /text/action/stop
+    /text/action/lower
+    /text/action/higher
+    /text/volume/decrease
+    </pre>
+    """
 
 class RequestHandler (BaseHTTPRequestHandler):
     def log_message(self, format, *args):
@@ -711,6 +679,10 @@ class RequestHandler (BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             if self.path == '/':
+                output = get_help_page()
+                self.send_response(200)
+                self.send_header("Content-type", "text/html")
+            elif self.path == '/info.html':
                 output = get_template("info.html")
                 self.send_response(200)
                 self.send_header("Content-type", "text/html")
@@ -740,6 +712,8 @@ class RequestHandler (BaseHTTPRequestHandler):
     def do_NOTIFY(self):
         global needs_to_reload_zone_config
         global raumfeld_handler
+
+        print(self.path, RfCmd.map_udn_to_friendly_name("uuid:"+self.path[1:]))
         content_length = int(self.headers['content-length'])
         notification = self.rfile.read(content_length)
         result = minidom.parseString(notification.decode('UTF-8'))
