@@ -8,7 +8,6 @@ import syslog
 from pprint import pprint
 from xml.dom import minidom
 import hashlib
-
 from pyfeld.renderer import Renderer
 
 from pyfeld.discoverByHttp import DiscoverByHttp
@@ -46,6 +45,10 @@ class RaumfeldHandler:
         self.verbose = False
         self.zone_hash = ""
         self.found_protocol_ip = None
+        self.notify_callback =  None
+
+    def set_notify_callback(self, cb):
+        self.notify_callback = cb
 
     def set_active_zones(self, zones, zone_hash):
         RaumfeldHandler.active_zones = zones
@@ -504,7 +507,6 @@ class RaumfeldHandler:
         return resstr
 
     def find_udn(self, udn):
-        result_list = dict()
         for zone in self.get_active_zones():
             try:
                 if zone.udn == udn:
@@ -540,14 +542,11 @@ class RaumfeldHandler:
                                                              ])
         if len(state_var_items):
             result = self.find_udn(udn)
-            if result is not None:
-                print("Notify UDN:", result['type'])
-            else:
-                print("Notify UDN {0} not found".format(udn))
             if result['type'] in ['room', 'room_renderer', 'zone']:
                 result['obj'].set_event_update(udn, state_var_items)
-            pprint(state_var_items, width=160)
             self.events_count += 1
+            if self.notify_callback is not None:
+                self.notify_callback(self)
 
     def browse_media(self, path):
         for server in self.media_servers:

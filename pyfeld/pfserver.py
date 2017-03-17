@@ -14,12 +14,16 @@ from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer, urllib
 
 from os import unlink
+from pprint import pprint
 from urllib import parse
 
 import re
 from xml.dom import minidom
 
 import requests
+
+from objectFormatter import ObjectFormatter
+
 from pyfeld.xmlHelper import XmlHelper
 
 from pyfeld.raumfeldHandler import RaumfeldHandler
@@ -114,6 +118,7 @@ class SubscriptionHandler:
                     self.create_new_subscription(local_ip, arglist.localport, nl, upnp['eventSubURL'], udn)
         except Exception as e:
             print("__subscribe_service_list error {0}".format(e))
+
 
     def subscription_thread(self, delay_value):
         global arglist
@@ -494,7 +499,7 @@ def handle_action(action):
         return handle_volume('high')
     if handle_transportaction(action):
         return "[]", "Ok"
-    return "[]", "Das weiss raumfeld nicht? Das ist wirklich doof, nicht wahr?! Frage Juergen dass er das macht!"
+    return "[]", "Das weiss raumfeld nicht? Das ist wirklich doof, nicht wahr?! Frage Juergen, dass er das macht!"
 
 
 def play_at(time_point, what, index):
@@ -656,6 +661,7 @@ def get_help_page():
     </pre>
     """
 
+
 class RequestHandler (BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         return
@@ -709,6 +715,74 @@ class RequestHandler (BaseHTTPRequestHandler):
             output = "Internal server error:<br/> {0}".format(e)
             self.wfile.write(bytearray(output, 'UTF-8'))
 
+    def filter_notification(self, last_change):
+        print("\n\n#NOTIFY LastChange: " + self.path + "\n" + last_change.toprettyxml())
+        """
+
+
+#NOTIFY LastChange: /af0f2fa1-5df1-4ce5-b430-12e5e343d5a1
+<?xml version="1.0" ?>
+<Event xmlns="urn:schemas-upnp-org:metadata-1-0/AVT/">
+	<InstanceID val="0">
+		<RoomStates val="uuid:302708b1-f9a2-4718-a25a-55ec9b9aeca1=STOPPED"/>
+		<CurrentTransportActions val="Play"/>
+	</InstanceID>
+</Event>
+
+/af0f2fa1-5df1-4ce5-b430-12e5e343d5a1 one-m
+no server 127.0.0.1:24445
+13:53
+/af0f2fa1-5df1-4ce5-b430-12e5e343d5a1 one-m
+Notify UDN: zone
+{'Volume': '26'}
+
+
+#NOTIFY LastChange: /af0f2fa1-5df1-4ce5-b430-12e5e343d5a1
+<?xml version="1.0" ?>
+<Event xmlns="urn:schemas-upnp-org:metadata-1-0/RCS/">
+	<InstanceID val="0">
+		<RoomVolumes val="uuid:302708b1-f9a2-4718-a25a-55ec9b9aeca1=26"/>
+		<Volume channel="Master" val="26"/>
+	</InstanceID>
+</Event>
+
+#NOTIFY LastChange: /302708b1-f9a2-4718-a25a-55ec9b9aeca1
+<?xml version="1.0" ?>
+<Event xmlns="urn:schemas-upnp-org:metadata-1-0/AVT/">
+	<InstanceID val="0">
+		<AVTransportURIMetaData val=""/>
+		<CurrentTrackDuration val="NOT_IMPLEMENTED"/>
+		<PowerState val="AUTOMATIC_STANDBY"/>
+		<AVTransportURI val=""/>
+		<CurrentPlayMode val="NORMAL"/>
+		<TransportState val="NO_MEDIA_PRESENT"/>
+		<CurrentTransportActions val=""/>
+		<TransportStatus val="OK"/>
+	</InstanceID>
+</Event>
+
+#NOTIFY LastChange: /302708b1-f9a2-4718-a25a-55ec9b9aeca1
+<?xml version="1.0" ?>
+<Event xmlns="urn:schemas-upnp-org:metadata-1-0/RCS/">
+	<InstanceID val="0">
+		<LowDB val="0.000000"/>
+		<Volume Channel="Master" val="24"/>
+		<MidLowDB val="0.000000"/>
+		<Mute Channel="Master" val="0"/>
+		<MidHighQ val="0.100000"/>
+		<MidLowF val="750.000000"/>
+		<HighDB val="0.000000"/>
+		<VolumeDB Channel="Master" val="-8448"/>
+		<MidDB val="0.000000"/>
+		<MidHighDB val="0.000000"/>
+		<MidLowQ val="0.100000"/>
+		<MidHighF val="2500.000000"/>
+	</InstanceID>
+</Event>
+
+
+"""
+
     def do_NOTIFY(self):
         global needs_to_reload_zone_config
         global raumfeld_handler
@@ -728,7 +802,7 @@ class RequestHandler (BaseHTTPRequestHandler):
                 needs_to_reload_zone_config = True
             last_change = minidom.parseString(notification_content['LastChange'])
             raumfeld_handler.set_subscription_values("uuid:" + self.path[1:], last_change)
-            print("\n\n#NOTIFY LastChange: "+self.path+"\n"+last_change.toprettyxml())
+            #print("\n\n#NOTIFY LastChange: "+self.path+"\n"+last_change.toprettyxml())
         self.send_response(200)
         self.end_headers()
 
@@ -750,11 +824,15 @@ running = True
 
 def call_forwarder(host, port):
     global running
+    msg_count = 1
     while running:
         try:
             tn = telnetlib.Telnet(host, port)
         except:
-            print("no server {}:{}".format(host, port))
+            msg_count -= 1
+            if msg_count == 0:
+                print("no server {}:{}".format(host, port))
+                msg_count = 10
             sleep(10)
             continue
         try:
@@ -792,13 +870,13 @@ def timed_action():
     global list_of_actions
     while 1:
         current_time = datetime.now().strftime('%H:%M')
-        print(current_time)
+        #print(current_time)
         for value in list_of_actions:
             if value[0] == current_time:
                 value[0] = 'done'
                 if value[1] == 'play':
                     play(value[2], value[3], "")
-                print(list_of_actions)
+                #print(list_of_actions)
         sleep(10)
 
 def run_server(host, port):
@@ -812,6 +890,17 @@ def run_server(host, port):
         print("run_Server error:"+str(e))
 
 
+def show_notification_state(raumfeldHandler):
+    for zone in raumfeldHandler.get_active_zones():
+        print("#"*100)
+        pprint(vars(zone))
+        pprint(vars(zone.state_variables))
+        if zone.rooms is not None:
+            for room in zone.rooms:
+                print("-"*100)
+                pprint(vars(room))
+        objf = ObjectFormatter()
+        #print(objf(zone))
 
 def get_local_ip_address():
     s = socket(AF_INET, SOCK_DGRAM)
@@ -839,7 +928,8 @@ def run_main():
     threading.Thread(target=call_forwarder, args=[arglist.telnetserverip, arglist.telnetserverport]).start()
 
     RfCmd.discover()
-    raumfeld_handler = RaumfeldHandler();
+    raumfeld_handler = RaumfeldHandler()
+    raumfeld_handler.set_notify_callback(show_notification_state)
     subscription_handler = SubscriptionHandler(raumfeld_handler)
     threads = []
     t = threading.Thread(target=subscription_handler.subscription_thread, args=(280,))
