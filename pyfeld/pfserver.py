@@ -1,43 +1,37 @@
 #!/usr/bin/env python3
-
-import argparse
-import json
-import mimetypes
-import telnetlib
-import threading
-import html.parser
-
+from collections import OrderedDict
 from concurrent.futures import thread
 from datetime import time, datetime, timedelta
-
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer, urllib
-
+from objectFormatter import ObjectFormatter
 from os import unlink
 from pprint import pprint
-from urllib import parse
-
-import re
-from xml.dom import minidom
-
-import requests
-
-from objectFormatter import ObjectFormatter
-
-from uuidStore import UuidStore
-from pyfeld.xmlHelper import XmlHelper
-
-from pyfeld.raumfeldHandler import RaumfeldHandler
-
 from pyfeld.didlInfo import DidlInfo
 from pyfeld.matchName import match_something
-
+from pyfeld.raumfeldHandler import RaumfeldHandler
+from pyfeld.rfcmd import RfCmd
 from pyfeld.settings import Settings
 from pyfeld.upnpCommand import UpnpCommand
-from pyfeld.rfcmd import RfCmd
+from uuidStore import UuidStoreKeys
+from pyfeld.xmlHelper import XmlHelper
 from socket import *
 from time import sleep
+from urllib import parse
+from uuidStore import UuidStore
+from xml.dom import minidom
+import argparse
+import curses
+import html.parser
+import json
 import logging
+import mimetypes
+import re
+import requests
+import telnetlib
+import threading
+import time
+
 
 
 """
@@ -909,6 +903,83 @@ def get_local_ip_address():
     s.connect(("8.8.8.8", 80))
     return s.getsockname()[0]
 
+class MainGui:
+    def __init__(self):
+        self.notification_count = 0
+        self.window = curses.initscr()
+        curses.start_color()
+        curses.noecho()
+        curses.cbreak()
+        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
+        curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_WHITE)
+        curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_BLACK)
+        curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_RED)
+        curses.init_pair(5, curses.COLOR_YELLOW, curses.COLOR_BLUE)
+
+        self.window.keypad(1)
+        self.draw_ui()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.window.keypad(0)
+        curses.echo()
+        curses.nocbreak()
+        curses.endwin()
+
+    def draw_ui(self):
+        self.window.clear()
+        (self.screen_height, self.screen_width) = self.window.getmaxyx()
+        self.window.addstr(0, 0, "")
+        self.window.addstr(self.screen_height - 1, 0, "Q)uit or ESC to leave")
+        self.window.refresh()
+
+    def show_notification_state(self, uuid_store):
+        self.notification_count += 1
+        col = curses.color_pair(3)
+        self.window.addstr(self.screen_height - 1, 30, str(self.notification_count), col)
+
+        key_list = UuidStoreKeys.get_keys()
+        y = 3
+        col = curses.color_pair(3)
+        for k in key_list:
+            self.window.addstr(1 + y, 1, "{0}".format(k), col)
+            y += 1
+
+        columns = len(uuid_store.uuid)
+        x = 1
+        xw = 30
+        current_time = time.time()
+        for dummy, item in uuid_store.uuid.items():
+            self.window.addstr(1, x*xw, "{0}".format(item.rf_type, item.name))
+            self.window.addstr(2, x*xw, "{1}".format(item.rf_type, item.name))
+            y = 3
+            for k in key_list:
+                self.window.addstr(1 + y, x * xw, " " * (xw - 1), curses.color_pair(3))
+                if k in item.itemMap:
+                    deltatime = current_time - item.itemMap[k].timeChanged
+                    if deltatime > 5:
+                        col = curses.color_pair(3)
+                    else:
+                        col = curses.color_pair(4)
+
+                    self.window.addstr(1+y, x*xw, "{0}".format(item.itemMap[k].value), col)
+                y += 1
+            x += 1
+        self.window.refresh()
+
+    def run_main_loop(self):
+        self.draw_ui()
+        while 1:
+            c = self.window.getch()
+            if curses.keyname(c) in [b'q', b'Q']:
+                break
+            elif c == 27:
+                break
+            self.show_notification_state(uuid_store)
+        curses.endwin()
+
 
 def run_main():
     global uc_media
@@ -925,19 +996,24 @@ def run_main():
     parser.add_argument('--telnetserverip', default="127.0.0.1", help='Address of telnet server in the cloud')
     parser.add_argument('--telnetserverport', default='24445', help='Port of telnet server in the cloud')
     parser.add_argument('--localport', default='8088', help='local port for eventual rest interface')
+    parser.add_argument('--gui', dest='gui', default='none', help='add a monitor window')
     arglist = parser.parse_args()
 
     threading.Thread(target=call_forwarder, args=[arglist.telnetserverip, arglist.telnetserverport]).start()
 
     RfCmd.discover()
     raumfeld_handler = RaumfeldHandler()
-    #raumfeld_handler.set_notify_callback(show_notification_state)
     subscription_handler = SubscriptionHandler(raumfeld_handler)
     threads = []
     t = threading.Thread(target=subscription_handler.subscription_thread, args=(280,))
     threads.append(t)
     t.start()
-
+    if arglist.gui == 'curses':
+        gui = MainGui()
+        uuid_store.set_update_cb(gui.show_notification_state)
+        tgui = threading.Thread(target=gui.run_main_loop)
+        threads.append(tgui)
+        tgui.start()
     uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][0]['location'])
     this_servers_ip = get_local_ip_address()
     run_server(this_servers_ip, arglist.localport)
