@@ -24,6 +24,7 @@ import requests
 
 from objectFormatter import ObjectFormatter
 
+from uuidStore import UuidStore
 from pyfeld.xmlHelper import XmlHelper
 
 from pyfeld.raumfeldHandler import RaumfeldHandler
@@ -36,7 +37,6 @@ from pyfeld.upnpCommand import UpnpCommand
 from pyfeld.rfcmd import RfCmd
 from socket import *
 from time import sleep
-
 import logging
 
 
@@ -81,6 +81,7 @@ save last: room, list, volume, song
 
 list_of_actions = []
 
+uuid_store = UuidStore()
 
 class EventListenerAtom:
     def __init__(self, sid, timeout, net_location, service, udn):
@@ -162,8 +163,8 @@ class SubscriptionHandler:
                    "User-Agent": "xrf/1.0",
                    "Connection": "Keep-Alive",
                    }
-        print("SUBSCRIBE http://"+net_location+service)
-        print("callback url "+callback_url)
+        #print("SUBSCRIBE http://"+net_location+service)
+        #print("callback url "+callback_url)
         response = requests.request('SUBSCRIBE', "http://"+net_location+service, headers=headers, data="")
         sid = response.headers['sid']
         seconds_search = re.search("Second-([0-9]+)", response.headers['timeout'], re.IGNORECASE)
@@ -172,7 +173,7 @@ class SubscriptionHandler:
         else:
             timeout = "300"
 
-        print("subscription: " + net_location+service + ":" + str(response))
+        #print("subscription: " + net_location+service + ":" + str(response))
         self.subscriptions[sid] = EventListenerAtom(sid, timeout, net_location, service, udn)
 
 
@@ -248,7 +249,7 @@ def create_search_path(origin, where):
     if where.lower() in ['', 'all', 'alltracks']:
         where = 'AllTracks'
     path = "0/"+origin+"/Search/" + where
-    print("path="+path)
+    #print("path="+path)
     return path
 
 
@@ -519,7 +520,7 @@ def handle_info(info):
         textresult = model.get_state('lastroom')
     if info == 'title':
         results = get_room_uc().get_position_info()
-        print(results)
+        #print(results)
         textresult = ""
         if is_an_int(results['Track']):
             track = int(results['Track'])
@@ -527,7 +528,7 @@ def handle_info(info):
                 textresult = "Track {} ".format(track)
         if 'DIDL-Lite' in results['TrackMetaData']:
             didlinfo = DidlInfo(results['TrackMetaData'], True).get_items()
-            print(didlinfo)
+            #print(didlinfo)
             textresult += didlinfo['title']
             if didlinfo['album']!='':
                 textresult += " album: "+didlinfo['album']
@@ -545,7 +546,7 @@ def handle_info(info):
 
     if info == 'remaining':
         results = get_room_uc().get_position_info()
-        print(results)
+        #print(results)
         duration = RfCmd.timecode_to_seconds(results['TrackDuration'])
         currentPosition = RfCmd.timecode_to_seconds(results['RelTime'])
         if duration == 0:
@@ -596,7 +597,7 @@ def handle_path_request(path):
             path = parse.unquote(path)
         except Exception as e:
             return "an error occured: {}".format(e)
-        print("requestpath:" + path)
+        #print("requestpath:" + path)
         text_result = "Sorry! Did not understand what you are looking for! Request wants a format like text or json!"
         padded_path = path + "//////"
 
@@ -716,7 +717,8 @@ class RequestHandler (BaseHTTPRequestHandler):
             self.wfile.write(bytearray(output, 'UTF-8'))
 
     def filter_notification(self, last_change):
-        print("\n\n#NOTIFY LastChange: " + self.path + "\n" + last_change.toprettyxml())
+        pass
+        #print("\n\n#NOTIFY LastChange: " + self.path + "\n" + last_change.toprettyxml())
         """
 
 
@@ -786,12 +788,13 @@ Notify UDN: zone
     def do_NOTIFY(self):
         global needs_to_reload_zone_config
         global raumfeld_handler
-
-        print(self.path, RfCmd.map_udn_to_friendly_name("uuid:"+self.path[1:]))
+        uuid = "uuid:"+self.path[1:]
+        friendly_name = RfCmd.map_udn_to_friendly_name(uuid)
+        #print(self.path, friendly_name)
         content_length = int(self.headers['content-length'])
         notification = self.rfile.read(content_length)
         result = minidom.parseString(notification.decode('UTF-8'))
-#        print("\n\n#NOTIFY:\n" + result.toprettyxml())
+        #print("\n\n#NOTIFY:\n" + result.toprettyxml())
         notification_content = XmlHelper.xml_extract_dict(result,
                                                           ['LastChange',
                                                            'Revision',
@@ -801,6 +804,7 @@ Notify UDN: zone
             if '/Preferences/ZoneConfig/Rooms' in notification_content['LastChange']:
                 needs_to_reload_zone_config = True
             last_change = minidom.parseString(notification_content['LastChange'])
+            uuid_store.set(uuid, friendly_name[0], friendly_name[1], last_change)
             raumfeld_handler.set_subscription_values("uuid:" + self.path[1:], last_change)
             #print("\n\n#NOTIFY LastChange: "+self.path+"\n"+last_change.toprettyxml())
         self.send_response(200)
@@ -812,9 +816,7 @@ def open_info_channel(ip, port):
 
 def scan_raumfeld():
     while 1:
-        print("discovery")
         RfCmd.discover()
-        print("done")
         model.save_states()
         sleep(60)
 
@@ -929,7 +931,7 @@ def run_main():
 
     RfCmd.discover()
     raumfeld_handler = RaumfeldHandler()
-    raumfeld_handler.set_notify_callback(show_notification_state)
+    #raumfeld_handler.set_notify_callback(show_notification_state)
     subscription_handler = SubscriptionHandler(raumfeld_handler)
     threads = []
     t = threading.Thread(target=subscription_handler.subscription_thread, args=(280,))
@@ -942,5 +944,3 @@ def run_main():
 
 if __name__ == "__main__":
     run_main()
-
-

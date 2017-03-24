@@ -417,12 +417,30 @@ class RfCmd:
                     except:
                         single_result.append("-")
                 result_list.append(single_result)
-        if format == 'json':
-            result = json.dumps(result_list, sort_keys=True, indent=2) + "\n"
+                if len(zone['rooms']):
+                    header_list = ["Room", "Vol", "Eq Low", "Eq Mid", "Eq High", "", "", "", "", ""]
+                    result_list.append(header_list)
+                    for room in zone['rooms']:
+                        single_result = list()
+                        single_result.append(""+room['name'])
+                        udn = RfCmd.get_room_udn(room['name'])
+                        result = uc.get_room_volume(udn)
+                        single_result.append(result)
+                        single_result.append("")
+                        single_result.append("")
+                        single_result.append("")
+                        single_result.append("")
+                        single_result.append("")
+                        single_result.append("")
+                        single_result.append("")
+                        single_result.append("")
+                        result_list.append(single_result)
+            if format == 'json':
+                result = json.dumps(result_list, sort_keys=True, indent=2) + "\n"
         else:
             t = Texttable(250)
             t.add_rows(result_list)
-            result = t.draw()
+            result = t.draw()+"\n"
         return result
 
     @staticmethod
