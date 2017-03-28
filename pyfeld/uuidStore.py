@@ -4,36 +4,36 @@ from pyfeld.xmlHelper import XmlHelper
 
 class UuidStoreKeys:
     @staticmethod
-
-    def get_keys():
-        return ['AbsoluteTimePosition',
-                # 'AVTransportURI',
-                # 'AVTransportURIMetaData',
-                'Bitrate',
-                'ContentType',
-                #'CurrentPlayMode',
-                #'CurrentRecordQualityMode',
-                'CurrentTrack',
-                'CurrentTrackDuration',
-                # 'CurrentTrackMetaData',
-                # 'CurrentTrackURI',
-                #'CurrentTransportActions',
-                'HighDB',
-                'LowDB',
-                'MidDB',
-                'Mute',
-                'PowerState',
-                'RelativeCounterPosition',
-                'RelativeTimePosition',
-                # 'RoomMutes',
-                # 'RoomVolumes',
-                'SecondsUntilSleep',
-                'SleepTimerActive',
-                'TransportState',
-                'TransportStatus',
-                'Volume',
-                'VolumeDB'
+    def get_key_and_setting():
+        return [['AbsoluteTimePosition', True, False],
+                ['AVTransportURI', False, False],
+                ['AVTransportURIMetaData', False, False],
+                ['Bitrate', True, False],
+                ['ContentType', True, False],
+                ['CurrentPlayMode', False, False],
+                ['CurrentRecordQualityMode', False, False],
+                ['CurrentTrack', True, False],
+                ['CurrentTrackDuration', True, False],
+                ['CurrentTrackMetaData', False, True],
+                ['CurrentTrackURI', False, False],
+                ['CurrentTransportActions', False, False],
+                ['HighDB', True, False],
+                ['LowDB', True, False],
+                ['MidDB', True, False],
+                ['Mute', True, False],
+                ['PowerState', True, False],
+                ['RelativeCounterPosition', True, False],
+                ['RelativeTimePosition', True, False],
+                ['RoomMutes', False, False],
+                ['RoomVolumes', False, False],
+                ['SecondsUntilSleep', True, False],
+                ['SleepTimerActive', True, False],
+                ['TransportState', True, False],
+                ['TransportStatus', True, False],
+                ['Volume', True, False],
+                ['VolumeDB', True, False],
                 ]
+
 
 class SingleItem:
     def __init__(self, value):
@@ -54,17 +54,21 @@ class SingleUuid:
         self.itemMap = dict()
 
     def update(self, xmldom):
-        #print(xmldom.toprettyxml())
-        items = XmlHelper.xml_extract_dict_by_val(xmldom, UuidStoreKeys.get_keys())
+        # print(xmldom.toprettyxml())
+        key_list = list()
+        for item in UuidStoreKeys.get_key_and_setting():
+            key_list.append(item[0])
+        items = XmlHelper.xml_extract_dict_by_val(xmldom, key_list)
         changed = False
         for key, value in items.items():
             if key in self.itemMap:
-                self.itemMap[key].update(value)
+                self.itemMap[key].update(value[0])
             else:
-                self.itemMap[key] = SingleItem(value)
+                self.itemMap[key] = SingleItem(value[0])
+            if key == 'CurrentTrackMetaData':
+                DidlInfo(value[0])
         if changed:
             self.timeChanged = time.time()
-        pass
 
 
 class UuidStore:

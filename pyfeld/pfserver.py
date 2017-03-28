@@ -710,75 +710,6 @@ class RequestHandler (BaseHTTPRequestHandler):
             output = "Internal server error:<br/> {0}".format(e)
             self.wfile.write(bytearray(output, 'UTF-8'))
 
-    def filter_notification(self, last_change):
-        pass
-        #print("\n\n#NOTIFY LastChange: " + self.path + "\n" + last_change.toprettyxml())
-        """
-
-
-#NOTIFY LastChange: /af0f2fa1-5df1-4ce5-b430-12e5e343d5a1
-<?xml version="1.0" ?>
-<Event xmlns="urn:schemas-upnp-org:metadata-1-0/AVT/">
-	<InstanceID val="0">
-		<RoomStates val="uuid:302708b1-f9a2-4718-a25a-55ec9b9aeca1=STOPPED"/>
-		<CurrentTransportActions val="Play"/>
-	</InstanceID>
-</Event>
-
-/af0f2fa1-5df1-4ce5-b430-12e5e343d5a1 one-m
-no server 127.0.0.1:24445
-13:53
-/af0f2fa1-5df1-4ce5-b430-12e5e343d5a1 one-m
-Notify UDN: zone
-{'Volume': '26'}
-
-
-#NOTIFY LastChange: /af0f2fa1-5df1-4ce5-b430-12e5e343d5a1
-<?xml version="1.0" ?>
-<Event xmlns="urn:schemas-upnp-org:metadata-1-0/RCS/">
-	<InstanceID val="0">
-		<RoomVolumes val="uuid:302708b1-f9a2-4718-a25a-55ec9b9aeca1=26"/>
-		<Volume channel="Master" val="26"/>
-	</InstanceID>
-</Event>
-
-#NOTIFY LastChange: /302708b1-f9a2-4718-a25a-55ec9b9aeca1
-<?xml version="1.0" ?>
-<Event xmlns="urn:schemas-upnp-org:metadata-1-0/AVT/">
-	<InstanceID val="0">
-		<AVTransportURIMetaData val=""/>
-		<CurrentTrackDuration val="NOT_IMPLEMENTED"/>
-		<PowerState val="AUTOMATIC_STANDBY"/>
-		<AVTransportURI val=""/>
-		<CurrentPlayMode val="NORMAL"/>
-		<TransportState val="NO_MEDIA_PRESENT"/>
-		<CurrentTransportActions val=""/>
-		<TransportStatus val="OK"/>
-	</InstanceID>
-</Event>
-
-#NOTIFY LastChange: /302708b1-f9a2-4718-a25a-55ec9b9aeca1
-<?xml version="1.0" ?>
-<Event xmlns="urn:schemas-upnp-org:metadata-1-0/RCS/">
-	<InstanceID val="0">
-		<LowDB val="0.000000"/>
-		<Volume Channel="Master" val="24"/>
-		<MidLowDB val="0.000000"/>
-		<Mute Channel="Master" val="0"/>
-		<MidHighQ val="0.100000"/>
-		<MidLowF val="750.000000"/>
-		<HighDB val="0.000000"/>
-		<VolumeDB Channel="Master" val="-8448"/>
-		<MidDB val="0.000000"/>
-		<MidHighDB val="0.000000"/>
-		<MidLowQ val="0.100000"/>
-		<MidHighF val="2500.000000"/>
-	</InstanceID>
-</Event>
-
-
-"""
-
     def do_NOTIFY(self):
         global needs_to_reload_zone_config
         global raumfeld_handler
@@ -803,6 +734,7 @@ Notify UDN: zone
             #print("\n\n#NOTIFY LastChange: "+self.path+"\n"+last_change.toprettyxml())
         self.send_response(200)
         self.end_headers()
+
 
 def open_info_channel(ip, port):
     pass
@@ -875,6 +807,7 @@ def timed_action():
                 #print(list_of_actions)
         sleep(10)
 
+
 def run_server(host, port):
     threading.Thread(target=scan_raumfeld).start()
     threading.Thread(target=timed_action).start()
@@ -898,10 +831,12 @@ def show_notification_state(raumfeldHandler):
         objf = ObjectFormatter()
         #print(objf(zone))
 
+
 def get_local_ip_address():
     s = socket(AF_INET, SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
     return s.getsockname()[0]
+
 
 class MainGui:
     def __init__(self):
@@ -944,8 +879,9 @@ class MainGui:
         y = 3
         col = curses.color_pair(3)
         for k in key_list:
-            self.window.addstr(1 + y, 1, "{0}".format(k), col)
-            y += 1
+            if k[1] is True:
+                self.window.addstr(1 + y, 1, "{0}".format(k), col)
+                y += 1
 
         columns = len(uuid_store.uuid)
         x = 1
@@ -956,16 +892,17 @@ class MainGui:
             self.window.addstr(2, x*xw, "{1}".format(item.rf_type, item.name))
             y = 3
             for k in key_list:
-                self.window.addstr(1 + y, x * xw, " " * (xw - 1), curses.color_pair(3))
-                if k in item.itemMap:
-                    deltatime = current_time - item.itemMap[k].timeChanged
-                    if deltatime > 5:
-                        col = curses.color_pair(3)
-                    else:
-                        col = curses.color_pair(4)
+                if k[1] is True:
+                    self.window.addstr(1 + y, x * xw, " " * (xw - 1), curses.color_pair(3))
+                    if k in item.itemMap:
+                        deltatime = current_time - item.itemMap[k].timeChanged
+                        if deltatime > 5:
+                            col = curses.color_pair(3)
+                        else:
+                            col = curses.color_pair(4)
 
-                    self.window.addstr(1+y, x*xw, "{0}".format(item.itemMap[k].value), col)
-                y += 1
+                        self.window.addstr(1+y, x*xw, "{0}".format(item.itemMap[k].value), col)
+                    y += 1
             x += 1
         self.window.refresh()
 
