@@ -715,7 +715,6 @@ class RequestHandler (BaseHTTPRequestHandler):
         global raumfeld_handler
         uuid = "uuid:"+self.path[1:]
         friendly_name = RfCmd.map_udn_to_friendly_name(uuid)
-        #print(self.path, friendly_name)
         content_length = int(self.headers['content-length'])
         notification = self.rfile.read(content_length)
         result = minidom.parseString(notification.decode('UTF-8'))
@@ -812,7 +811,6 @@ def run_server(host, port):
     threading.Thread(target=scan_raumfeld).start()
     threading.Thread(target=timed_action).start()
     try:
-        print("Starting json server {}:{}".format(host, int(port)))
         server = HTTPServer((host, int(port)), RequestHandler)
         server.serve_forever()
     except Exception as e:
@@ -821,9 +819,9 @@ def run_server(host, port):
 
 def show_notification_state(raumfeldHandler):
     for zone in raumfeldHandler.get_active_zones():
-        print("#"*100)
-        pprint(vars(zone))
-        pprint(vars(zone.state_variables))
+#        print("#"*100)
+#        pprint(vars(zone))
+#        pprint(vars(zone.state_variables))
         if zone.rooms is not None:
             for room in zone.rooms:
                 print("-"*100)
@@ -875,44 +873,49 @@ class MainGui:
         col = curses.color_pair(3)
         self.window.addstr(self.screen_height - 1, 30, str(self.notification_count), col)
 
-        key_list = UuidStoreKeys.get_keys()
+        key_list = UuidStoreKeys.get_key_and_setting()
         y = 3
         col = curses.color_pair(3)
         for k in key_list:
             if k[1] is True:
-                self.window.addstr(1 + y, 1, "{0}".format(k), col)
+                self.window.addstr(1 + y, 1, "{0}".format(k[0]), col)
                 y += 1
 
         columns = len(uuid_store.uuid)
+        self.window.addstr(0, 50, "columns = {0}".format(columns), col)
         x = 1
         xw = 30
         current_time = time.time()
         for dummy, item in uuid_store.uuid.items():
-            self.window.addstr(1, x*xw, "{0}".format(item.rf_type, item.name))
-            self.window.addstr(2, x*xw, "{1}".format(item.rf_type, item.name))
+            self.window.addstr(1, x*xw, "{0}".format(item.rf_type))
+            self.window.addstr(2, x*xw, "{0}".format(item.name))
             y = 3
             for k in key_list:
                 if k[1] is True:
-                    self.window.addstr(1 + y, x * xw, " " * (xw - 1), curses.color_pair(3))
-                    if k in item.itemMap:
-                        deltatime = current_time - item.itemMap[k].timeChanged
+                    self.window.addstr(1 + y, x * xw, "-" * (xw - 1), curses.color_pair(3))
+                    if k[0] in item.itemMap:
+                        deltatime = current_time - item.itemMap[k[0]].timeChanged
                         if deltatime > 5:
                             col = curses.color_pair(3)
                         else:
                             col = curses.color_pair(4)
 
-                        self.window.addstr(1+y, x*xw, "{0}".format(item.itemMap[k].value), col)
+                        self.window.addstr(1+y, x*xw, "{0}".format(item.itemMap[k[0]].value), col)
                     y += 1
             x += 1
+        self.window.move(1, 1)
         self.window.refresh()
 
     def run_main_loop(self):
         self.draw_ui()
+        self.window.move(1, 1)
         while 1:
             c = self.window.getch()
             if curses.keyname(c) in [b'q', b'Q']:
                 break
             elif c == 27:
+                break
+            elif curses.keyname(c) in [b'i', b'I']:
                 break
             self.show_notification_state(uuid_store)
         curses.endwin()

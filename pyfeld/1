@@ -1,8 +1,0 @@
-usage: pfserver.py [-h] [--telnetserverip TELNETSERVERIP]
-                   [--telnetserverport TELNETSERVERPORT]
-                   [--localport LOCALPORT] [--gui GUI]
-pfserver.py: error: unrecognized arguments: /dev/null
-usage: pfserver.py [-h] [--telnetserverip TELNETSERVERIP]
-                   [--telnetserverport TELNETSERVERPORT]
-                   [--localport LOCALPORT] [--gui GUI]
-pfserver.py: error: unrecognized arguments: /dev/null

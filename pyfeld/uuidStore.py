@@ -35,6 +35,7 @@ class UuidStoreKeys:
                 ]
 
 
+
 class SingleItem:
     def __init__(self, value):
         self.timeChanged = time.time()
@@ -60,15 +61,19 @@ class SingleUuid:
             key_list.append(item[0])
         items = XmlHelper.xml_extract_dict_by_val(xmldom, key_list)
         changed = False
-        for key, value in items.items():
-            if key in self.itemMap:
-                self.itemMap[key].update(value[0])
-            else:
-                self.itemMap[key] = SingleItem(value[0])
-            if key == 'CurrentTrackMetaData':
-                DidlInfo(value[0])
-        if changed:
-            self.timeChanged = time.time()
+        try:
+            for key, value in items.items():
+                if key in self.itemMap:
+                    self.itemMap[key].update(value)
+                else:
+                    self.itemMap[key] = SingleItem(value)
+    #            if key == 'CurrentTrackMetaData':
+    #                DidlInfo(value[0])
+            if changed:
+                self.timeChanged = time.time()
+        except Exception as e:
+
+            print("SingleUUID error {0}".format(e))
 
 
 class UuidStore:
@@ -89,6 +94,8 @@ class UuidStore:
             self.callback(self)
 
     def show(self):
+        return
+        print("###### SHOW UuidStore ######")
         for dummy, item in self.uuid.items():
             print(item.uuid, item.rf_type, item.name)
             for key, value in item.itemMap.items():

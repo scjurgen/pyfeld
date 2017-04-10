@@ -175,7 +175,7 @@ class RfCmd:
                         return ["Room", room['name']]
                     for renderer in room['room_renderers']:
                         if renderer['udn'] == udn:
-                            return ["Renderer",renderer['name']]
+                            return ["Renderer", renderer['name']]
         return None
 
     @staticmethod
