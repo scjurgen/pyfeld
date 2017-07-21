@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import unicode_literals
 
-version = "0.9.13"
+version = "0.9.14"
 
 import json
 import subprocess
@@ -547,6 +547,7 @@ def usage(argv):
     print("  -e,--device name          specify device by name, special case is <host> as name")
     print("  -m,--mediaserver #        Specify media server, default 0 = first")
     print("  -v,--verbose              Increase verbosity (use twice for more)")
+    print("     --force-local-ip IP    force local ip to a certain address (useful with multiple net cards)")
 
     print("COMMANDS: (some commands return xml)")
     print("  browse path               Browse for media append /* for recursive")
@@ -652,6 +653,9 @@ def run_main():
             verbose += 1
         elif option == '-vv':
             verbose += 2
+        elif option == 'force-local-ip':
+            RaumfeldDeviceSettings.force_local_ip_address(argv[arg_pos])
+            arg_pos += 1
         elif option == 'user-agent':
             UpnpCommand.overwrite_user_agent(argv[arg_pos])
             arg_pos += 1
@@ -732,6 +736,14 @@ def run_main():
                                                                      argv[arg_pos])
         print("URI", argv[arg_pos], transport_data['CurrentURI'])
         transport_data['CurrentURIMetaData'] = '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:raumfeld="urn:schemas-raumfeld-com:meta-data/raumfeld"><container></container></DIDL-Lite>'
+        uc.set_transport_uri(transport_data)
+        result = 'ok'
+    elif operation == 'playuri':
+        transport_data = dict()
+        transport_data['CurrentURI'] = argv[arg_pos]
+        print("URI", argv[arg_pos], transport_data['CurrentURI'])
+        transport_data[
+            'CurrentURIMetaData'] = '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:raumfeld="urn:schemas-raumfeld-com:meta-data/raumfeld"><container></container></DIDL-Lite>'
         uc.set_transport_uri(transport_data)
         result = 'ok'
     elif operation == 'pause':

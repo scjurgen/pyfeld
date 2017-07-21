@@ -127,6 +127,8 @@ class RaumfeldDeviceSettings:
 
     @staticmethod
     def get_local_ip_address():
+        if RaumfeldDeviceSettings.local_ip != "":
+            return RaumfeldDeviceSettings.local_ip
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(("8.8.8.8", 80))
@@ -136,6 +138,10 @@ class RaumfeldDeviceSettings:
         except Exception as err:
             print("Exception get_local_ip_address: {0}".format(err))
             return None
+
+    @staticmethod
+    def force_local_ip_address(ip):
+        RaumfeldDeviceSettings.local_ip = ip
 
     def get_media_servers(self):
         try:
