@@ -343,15 +343,16 @@ class RaumfeldHandler:
             if self.found_protocol_ip is None:
                 self.found_protocol_ip = self.__get_host_ip_from_local()
             HostDevice.set(self.found_protocol_ip)
-            zones = self.check_for_zone("http://" + self.found_protocol_ip)
-            current_zone_hash = RaumfeldHandler.hash_zone(zones)
-            if current_zone_hash != self.zone_hash:
-                HostDevice.set(self.found_protocol_ip)
-                self.set_active_zones(zones, current_zone_hash)
-            return True
+            if self.found_protocol_ip is not None:
+                zones = self.check_for_zone("http://" + self.found_protocol_ip)
+                current_zone_hash = RaumfeldHandler.hash_zone(zones)
+                if current_zone_hash != self.zone_hash:
+                    HostDevice.set(self.found_protocol_ip)
+                    self.set_active_zones(zones, current_zone_hash)
+                return True
         except Exception as e:
             err_print("reprocess: " + str(e))
-            return False
+        return False
 
     def process_batch(self, lines, with_protocol):
         try:

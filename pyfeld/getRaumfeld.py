@@ -55,6 +55,7 @@ class HostDevice:
 
 
 class RaumfeldDeviceSettings:
+    local_ip = ""
     def __init__(self, server_ip):
         self.server_ip = server_ip
         self.model = "unknown"
@@ -69,13 +70,12 @@ class RaumfeldDeviceSettings:
         self.renderer_uuid = "unknown"
         self.version = "unknown"
         self.valid = False
-        self.local_ip = ""
 
     def set_verbose(self):
         self.verbose = True
 
     def retrieve_device_settings(self):
-        self.local_ip = self.get_local_ip_address()
+        self.get_local_ip_address()
         json_result = self.get_hostdata("device")
         if json_result is None:
             return
@@ -133,6 +133,7 @@ class RaumfeldDeviceSettings:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(("8.8.8.8", 80))
             res = s.getsockname()[0]
+            RaumfeldDeviceSettings.local_ip = res
             print("Local IP address:" + res)
             return res
         except Exception as err:
