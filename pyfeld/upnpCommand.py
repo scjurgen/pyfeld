@@ -374,6 +374,9 @@ class UpnpCommand:
     def browse_recursive_children(self, path, level=3, output_format='plain', startIndex=0, requestCount=0):
         if int(level) < 0:
             return "error on level < 0"
+        print(path)
+        if path == '0/RadioTime':
+            UpnpCommand.overwrite_user_agent('RaumfeldControl')
         result = self.browsechildren(path, startIndex, requestCount)
         if result is None:
             result = self.browse(path, startIndex, requestCount)

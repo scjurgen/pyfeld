@@ -1,6 +1,6 @@
 # coding=UTF-8
 
-this_version = '0.9.16'
+this_version = '0.9.17'
 
 import os
 from setuptools import setup, find_packages

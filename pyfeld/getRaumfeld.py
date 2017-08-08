@@ -168,7 +168,9 @@ class RaumfeldDeviceSettings:
             if len(rooms) == 1:
                 url += "connectRoomToZone?"
                 url += "roomUDN="
-                url += rooms[0]
+                for item in rooms:
+                    url += item
+                    break
             else:
                 url += "connectRoomsToZone?"
                 url += "roomUDNs="
