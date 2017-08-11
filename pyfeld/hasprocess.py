@@ -45,6 +45,8 @@ def list_of_expected_command():
             ["/usr/bin/rfpd", "rfpd (soundbar/deck)", False],
             ["logger -t", "config-service gdbus", False],
             ["/system/chrome/cast_shell", "cast_shell", True],
+            ["bluetoothd", "bluetoothd", False],
+            ["rf-bluetoothd", "rf-bluetoothd", False],
             ["avahi-daemon", "avahi-daemon", False],
             ["dbus-daemon", "dbus-daemon", False],
             ["/usr/sbin/connmand", "connmand", False],
