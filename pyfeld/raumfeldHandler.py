@@ -263,9 +263,8 @@ class RaumfeldHandler:
                 found_device = MediaDevice(udn, host_path.group(1), type, name)
                 found_device.upnp_service = self.get_zone_services(xmlListDevices, udn)
                 RaumfeldHandler.media_renderers.add(found_device)
-
             if device.getAttribute('type') == "urn:schemas-raumfeld-com:device:RaumfeldDevice:1":
-                if device.childNodes[0].nodeValue == 'Raumfeld Device':
+                if 'Device' in  device.childNodes[0].nodeValue:
                     location = device.getAttribute('location')
                     udn = device.getAttribute('udn')
                     type = device.getAttribute('type')
@@ -653,7 +652,7 @@ class RaumfeldHandler:
         values['zones'] = zone_list
 
         device_list = list()
-        for device in self.raumfeld_device:
+        for device in RaumfeldHandler.raumfeld_device:
             device_dict = dict()
             try:
                 device_dict['udn'] = str(device.udn)
