@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import unicode_literals
 
-version = "0.9.18"
+version = "0.9.21"
 
 import json
 import subprocess
@@ -177,6 +177,14 @@ class RfCmd:
                         if renderer['udn'] == udn:
                             return ["Renderer", renderer['name']]
         return None
+
+    @staticmethod
+    def get_device_name_by_ip(ip):
+        for device in RfCmd.rfConfig['renderer']:
+            ip_l = urllib3.util.parse_url(device['location'])
+            if ip == ip_l.host:
+                return device['name']
+        return "N/A"
 
     @staticmethod
     def get_device_ips(verbose, format):

@@ -8,6 +8,8 @@ from time import sleep
 
 import re
 
+from texttable import Texttable
+
 from pyfeld.pingTest import ping_test_alive
 
 
@@ -57,6 +59,31 @@ def get_ips():
     result = RfCmd.get_device_ips(False, 'list')
     return result
 
+def show_pretty_versions():
+    result_list = list()
+    header_list = ["IP", "Role", "Version", "Name", "Streamcast version", ]
+    result_list.append(header_list)
+    print("Versions installed:")
+    ips = get_ips()
+    for ip in ips:
+        line = retrieve(sshcmd + ip + " cat /var/raumfeld-1.0/device-role.json")
+        if "true" in line:
+            moreinfo = "host"
+        else:
+            moreinfo = "slave"
+        renderer_name = RfCmd.get_device_name_by_ip(ip)
+        line = retrieve(sshcmd + ip + " cat /etc/raumfeld-version")
+        line_streamcast = retrieve(sshcmd + ip + " streamcastd --version")
+        single_result = list()
+        single_result.append(ip)
+        single_result.append(moreinfo)
+        single_result.append(line.rstrip())
+        single_result.append(renderer_name)
+        single_result.append(line_streamcast.rstrip())
+        result_list.append(single_result)
+    t = Texttable(250)
+    t.add_rows(result_list)
+    print(t.draw())
 
 def show_versions():
     print("Versions installed:")
@@ -67,12 +94,7 @@ def show_versions():
             moreinfo = "host"
         else:
             moreinfo = "slave"
-        line = retrieve(sshcmd+ip+" cat /var/raumfeld-1.0/renderer-config.ini")
-        renderer_name = "unknown"
-        pattern = '.*renderer-name=(.*)'
-        m = re.search(pattern, str(line))
-        if m:
-            renderer_name = m.group(1)
+        renderer_name = RfCmd.get_device_name_by_ip(ip)
         line = retrieve(sshcmd+ip+" cat /etc/raumfeld-version")
         line_streamcast = retrieve(sshcmd+ip+" streamcastd --version")
         print(ip + "\t" + moreinfo + "\t" + line.rstrip() + "\t" + line_streamcast.rstrip() + "\t" + str(renderer_name))
@@ -201,7 +223,7 @@ def run_macro(argv):
         sys.exit(2)
     command = argv[1]
     if command == 'version':
-        show_versions()
+        show_pretty_versions()
     elif command == 'update':
         force_update(argv[2])
     elif command == 'ssh':
