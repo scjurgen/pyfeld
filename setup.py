@@ -1,6 +1,6 @@
 # coding=UTF-8
 
-this_version = '0.9.21'
+this_version = '0.9.22'
 
 import os
 from setuptools import setup, find_packages
@@ -40,14 +40,14 @@ setup(
     ],
     #py_modules=['pyfeld','DirBrowse'],
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['requests', 'texttable', 'urllib3', 'python-Levenshtein','python-daemon'],
+    install_requires=['requests', 'texttable', 'urllib3', 'python-daemon'],
+    # 'python-Levenshtein',  'futures'
     #packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     entry_points={
         'console_scripts': [
             'pyfeld=pyfeld.rfcmd:run_main',
             'pyfeldui=pyfeld.tkui:run_main',
             'pyfeldmacro=pyfeld.rfmacro:run_main',
-            'pfserver=pyfeld.pfserver:run_main',
         ],
     }
 )
