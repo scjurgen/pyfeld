@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import unicode_literals
 
-version = "0.9.21"
+version = "0.9.22"
 
 import json
 import subprocess
