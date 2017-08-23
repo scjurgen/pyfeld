@@ -426,19 +426,27 @@ class RfCmd:
                         single_result.append("-")
                 result_list.append(single_result)
                 if len(zone['rooms']):
-                    header_list = ["Room", "Vol", "Eq Low", "Eq Mid", "Eq High", "", "", "", "", ""]
+                    header_list = ["Room/Renderer", "Vol", "Mute", "Balance", "Eq Low", "Eq Mid", "Eq High", "", "", ""]
                     result_list.append(header_list)
                     for room in zone['rooms']:
                         single_result = list()
-                        single_result.append(""+room['name'])
+                        single_result.append("> "+room['name'])
                         udn = RfCmd.get_room_udn(room['name'])
+                        location = RfCmd.get_device_location_by_udn(udn)
+                        urc = UpnpCommand(location)
                         result = uc.get_room_volume(udn)
                         single_result.append(result)
-                        single_result.append("")
-                        single_result.append("")
-                        single_result.append("")
-                        single_result.append("")
-                        single_result.append("")
+                        result = uc.get_room_mute(udn)
+                        single_result.append(result)
+                        result = urc.get_balance()
+                        if result == "":
+                            result = "-"
+                        single_result.append(result)
+
+                        result = urc.get_filter("list")
+                        single_result.append(result["LowDB"])
+                        single_result.append(result["MidDB"])
+                        single_result.append(result["HighDB"])
                         single_result.append("")
                         single_result.append("")
                         single_result.append("")
