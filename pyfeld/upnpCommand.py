@@ -68,7 +68,8 @@ class UpnpCommand:
                     print(result.toprettyxml())
                 return result
             else:
-                print("query {0} returned status_code:{1}".format(control_url,response.status_code))
+                if self.verbose:
+                    print("query {0} returned status_code:{1}".format(control_url, response.status_code))
         except Exception as e:
             if self.verbose:
                 print("warning! host send error {0}".format(e))
@@ -266,6 +267,8 @@ class UpnpCommand:
         dict_result = XmlHelper.xml_extract_dict(xml_root, ['LowDB', 'MidDB', 'HighDB'])
         if output_format == 'json':
             return '{ "LowDB": "'+dict_result['LowDB'] + '",  "MidDB": "'+dict_result['MidDB'] + '",  "HighDB": "'+dict_result['HighDB'] + '"}'
+        elif output_format == 'list':
+            return dict_result
         else:
             return dict_result['LowDB'] + " " + dict_result['MidDB'] + " " + dict_result['HighDB']
 
@@ -374,7 +377,6 @@ class UpnpCommand:
     def browse_recursive_children(self, path, level=3, output_format='plain', startIndex=0, requestCount=0):
         if int(level) < 0:
             return "error on level < 0"
-        print(path)
         if path == '0/RadioTime':
             UpnpCommand.overwrite_user_agent('RaumfeldControl')
         result = self.browsechildren(path, startIndex, requestCount)

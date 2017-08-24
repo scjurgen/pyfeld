@@ -14,24 +14,20 @@ With these simple tools you can control the following things in Raumfeld:
 
 Installation
 ============
-the easiest way is to use pip
+the easiest way is to use pip3 for installation
 
-``pip install pyfeld``
+``pip3 install pyfeld``
+
+Please note, it requires python3, still have to figure out that you will NOT use it with python2 and
+hurting you before you use it.
 
 Usage
 =====
-you need nmap (for now, there is another simple discovery algorithm in progress)
-
-on mac:
-	``brew install nmap``
-
-on linux:
-	you know the drill ;-)
 
 Running pyfeld
 --------------
 
-These example will suppose a device called ``kitchen``
+These examples will suppose a device called ``kitchen``
 
 Get some help:
 
@@ -73,7 +69,7 @@ Drop a device from the zone it is in:
 Pyfeld advanced
 ---------------
 
-You can do work on specific UDN
+You can do operations on specific UDN, but it should not be necessary usually.
 
 Retrive UDN's:
     ``pyfeld --discover -v info``
@@ -82,14 +78,5 @@ Retrive UDN's:
 ``pyfeld --udn createzone uuid:f7052a34-37f6-432f-b584-837466474205``
 ``pyfeld --udn roomsetvolume uuid:f7052a34-37f6-432f-b584-837466474205 10``
 
-
-Todo:
-=====
-
-macro operations to wait for:
- - seek position
- - certain song
-
-pyfeldmacro update with killing of shell process
 
 

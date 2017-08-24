@@ -1,6 +1,9 @@
 # coding=UTF-8
+this_version = '0.9.26'
 
-this_version = '0.9.22'
+import sys
+if sys.version_info < (3,0):
+    sys.exit('Sorry, Python < 3.0 is not supported')
 
 import os
 from setuptools import setup, find_packages
