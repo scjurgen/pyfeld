@@ -3,7 +3,7 @@
 
 from __future__ import unicode_literals
 
-version = "0.9.26"
+version = "0.9.27"
 
 import json
 import subprocess
@@ -570,6 +570,7 @@ def usage(argv):
     print("COMMANDS: (some commands return xml)")
     print("  browse path               Browse for media append /* for recursive")
     print("  play browseitem           Play item in zone i.e. play '0/My Music/Albums/TheAlbumTitle'")
+    print("  playuri URI               Play external URI in zone i.e. play 'http://localhost/your.mp3'")
     print("  pause|stop|prev|next      Control currently playing items in zone")
 #    print("  currentsong              show current song info")
     print("  volume #                  Set volume of zone")

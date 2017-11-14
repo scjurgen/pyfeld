@@ -18,9 +18,9 @@ fi
 sudo rm -rf pyfeld.egg-info
 sudo rm -rf dist
 sudo rm -rf build
-python setup.py build
-python setup.py dist 
-python setup.py sdist
+python3 setup.py build
+python3 setup.py dist 
+python3 setup.py sdist
 #python setup.py bdist_wheel
 twine upload dist/*
 
