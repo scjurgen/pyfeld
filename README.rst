@@ -41,6 +41,31 @@ Same as bevor but print:
 
     ``pyfeld --discover --json info``
 
+Set volume of kitchen:
+    
+    ``pyfeld roomvolume 20 kitchen``
+
+Set volume on a zone:
+    
+    ``pyfeld -z 1 -d setvolume 50``
+
+switch device on:
+    
+    ``pyfeld standby off kitchen``
+
+
+Info for all devices:
+    
+    ``pyfeld -d playinfo``
+
+Stop a zone:
+
+    ``pyfeld -z 1 stop``
+
+ 
+
+
+
 Browse some stuff:
 
     ``pyfeld browse "0/My Music/Albums"``

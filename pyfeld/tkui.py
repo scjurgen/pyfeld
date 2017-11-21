@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
+"""
+TODO:
+show titles
+manage standby
+manage room volumes
 
+
+
+"""
 from __future__ import unicode_literals
 
 import json
