@@ -3,7 +3,7 @@
 
 from __future__ import unicode_literals
 
-version = "0.9.27"
+version = "0.9.29"
 
 import json
 import subprocess
@@ -571,7 +571,8 @@ def usage(argv):
     print("  browse path               Browse for media append /* for recursive")
     print("  play browseitem           Play item in zone i.e. play '0/My Music/Albums/TheAlbumTitle'")
     print("  playuri URI               Play external URI in zone i.e. play 'http://localhost/your.mp3'")
-    print("  pause|stop|prev|next      Control currently playing items in zone")
+    print("  stop|prev|next            Control currently playing items in zone")
+    print("  resume|pause              Control currently playing items in zone")
 #    print("  currentsong              show current song info")
     print("  volume #                  Set volume of zone")
     print("  getvolume                 Get volume of zone")
@@ -761,10 +762,34 @@ def run_main():
         transport_data = dict()
         transport_data['CurrentURI'] = argv[arg_pos]
         print("URI", argv[arg_pos], transport_data['CurrentURI'])
-        transport_data[
-            'CurrentURIMetaData'] = '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:raumfeld="urn:schemas-raumfeld-com:meta-data/raumfeld"><container></container></DIDL-Lite>'
+
+        transport_data['CurrentURIMetaData'] = \
+            '''<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" 
+            xmlns:dc="http://purl.org/dc/elements/1.1/" 
+            xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" 
+            xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" 
+            xmlns:raumfeld="urn:schemas-raumfeld-com:meta-data/raumfeld"
+            lang="en"
+            >
+                <item parentID="RadioTeufel" id="RadioTeufel/1" restricted="1">
+                <res bitrate="192" protocolInfo="http-get:*:audio/x-mpegurl:*">'''+transport_data['CurrentURI']+'''</res>
+                <raumfeld:name>radio</raumfeld:name>
+                <upnp:class>ContentSection</upnp:class>
+                <raumfeld:section>RadioTime</raumfeld:section>
+                <dc:title>Audio Broadcast</dc:title>
+                <upnp:album>Elegant Girl</upnp:album>
+                <upnp:artist>Audio Broadcast</upnp:artist>
+                <upnp:genre>Classic</upnp:genre>
+                <dc:creator>us</dc:creator>
+                <upnp:originalTrackNumber>1</upnp:originalTrackNumber>
+                <dc:date>1977-01-01</dc:date>
+                </item>
+            </DIDL-Lite>'''
+
         uc.set_transport_uri(transport_data)
         result = 'ok'
+    elif operation == 'resume':
+        result = uc.play()
     elif operation == 'pause':
         result = uc.pause()
     elif operation == 'stop':
