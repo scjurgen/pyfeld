@@ -1,5 +1,5 @@
 # coding=UTF-8
-this_version = '0.9.29'
+this_version = '0.9.30'
 
 import sys
 if sys.version_info < (3,0):

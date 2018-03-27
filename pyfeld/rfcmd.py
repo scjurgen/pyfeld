@@ -3,7 +3,7 @@
 
 from __future__ import unicode_literals
 
-version = "0.9.29"
+version = "0.9.30"
 
 import json
 import subprocess
@@ -848,7 +848,13 @@ def run_main():
         location = RfCmd.get_device_location_by_udn(udn)
         urc = UpnpCommand(location)
         arg_pos += 1
-        result = urc.get_setting(argv[arg_pos], format)
+        moniker = argv[arg_pos]
+        if moniker == 'all':
+            result = ""
+            for i in ['Audio Mode', 'Source Select', 'TV Source Select','Subwoofer Playback Volume','Subwoofer X-Over','Night Mode Switch']:
+                result += i + ": " + urc.get_setting(i, format) + "\n"
+        else:
+            result = urc.get_setting(moniker, format)
     elif operation == 'roomsetsetting':
         if device_format == 'udn':
             udn = argv[arg_pos]
