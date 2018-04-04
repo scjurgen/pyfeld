@@ -3,7 +3,7 @@
 
 from __future__ import unicode_literals
 
-version = "0.9.30"
+version = "0.9.31"
 
 import json
 import subprocess
