@@ -8,20 +8,20 @@ import syslog
 from pprint import pprint
 from xml.dom import minidom
 import hashlib
-from pyfeld.renderer import Renderer
+from renderer import Renderer
 
-from pyfeld.discoverByHttp import DiscoverByHttp
-from pyfeld.errorPrint import err_print
-from pyfeld.getRaumfeld import RaumfeldDeviceSettings, HostDevice
-from pyfeld.raumfeldZone import RaumfeldZone
-from pyfeld.room import Room
-from pyfeld.upnpCommand import UpnpCommand
-from pyfeld.upnpService import UpnpService
-from pyfeld.upnpsoap import UpnpSoap
+from discoverByHttp import DiscoverByHttp
+from errorPrint import err_print
+from getRaumfeld import RaumfeldDeviceSettings, HostDevice
+from raumfeldZone import RaumfeldZone
+from room import Room
+from upnpCommand import UpnpCommand
+from upnpService import UpnpService
+from upnpsoap import UpnpSoap
 
-from pyfeld.xmlHelper import XmlHelper
+from xmlHelper import XmlHelper
 
-from pyfeld.settings import Settings
+from settings import Settings
 
 
 class MediaDevice:

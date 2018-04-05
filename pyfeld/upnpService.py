@@ -4,8 +4,8 @@ import urllib3
 
 from xml.dom import minidom
 
-from pyfeld.upnpsoap import UpnpSoap
-from pyfeld.xmlHelper import XmlHelper
+from upnpsoap import UpnpSoap
+from xmlHelper import XmlHelper
 
 
 class Services:

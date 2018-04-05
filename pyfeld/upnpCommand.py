@@ -10,8 +10,8 @@ import cgi
 
 from xml.dom import minidom
 
-from pyfeld.xmlHelper import XmlHelper
-from pyfeld.didlInfo import DidlInfo
+from xmlHelper import XmlHelper
+from didlInfo import DidlInfo
 
 
 user_agent = "xrf/1.0"

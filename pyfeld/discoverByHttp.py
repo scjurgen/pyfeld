@@ -4,7 +4,7 @@ import threading
 
 import urllib3
 
-from pyfeld.getRaumfeld import RaumfeldDeviceSettings
+from getRaumfeld import RaumfeldDeviceSettings
 
 
 class DiscoverByHttp:

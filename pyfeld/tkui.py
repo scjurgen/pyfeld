@@ -21,24 +21,16 @@ except:
     print("pyfeld ui requires tkinter under python 3.x")
     exit(-1)
 
-from pyfeld.dirBrowseExtended import DirBrowseExtended
-
+from dirBrowseExtended import DirBrowseExtended
+from rfcmd import run_command
 
 def retrieve(cmd):
-    command = 'pyfeld '+cmd
-    print(command)
     try:
-        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        cmd = "pyfeld " + cmd
+        lines = run_command(cmd.split(" "))
     except Exception as e:
         return 0
-    lines = ""
-    while True:
-        nextline = process.stdout.readline()
-        if len(nextline) == 0 and process.poll() != None:
-            break
-        lines += nextline.decode('utf-8')
     return lines
-
 
 class ZoneContextMenu:
     def __init__(self):

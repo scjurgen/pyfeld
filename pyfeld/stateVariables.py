@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from pyfeld.didlInfo import DidlInfo
+from didlInfo import DidlInfo
 
 
 class StateVariables:

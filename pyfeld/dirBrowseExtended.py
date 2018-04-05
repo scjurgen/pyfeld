@@ -1,8 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import unicode_literals
 import json
 import subprocess
+
+from rfcmd import run_command
+
 
 def rf_command_line():
     return 'pyfeld --json browse'
@@ -48,19 +51,16 @@ class DirBrowseExtended:
     def retrieve(self, path):
         command = rf_command_line()
         if type(path).__name__ == 'bytes':
-            command += ' "' + path.decode('utf-8') + '"'
+            command += ' ' + path.decode('utf-8') + ''
         else:
-            command += ' "' + path + '"'
+            command += ' ' + path + ''
         try:
-            process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            args = command.split(" ")
+            print(args)
+            jsonFile = run_command(args)
+            #print(jsonFile)
         except Exception as e:
             return 0
-        jsonFile = ""
-        while True:
-            nextline = process.stdout.readline()
-            if len(nextline) == 0 and process.poll() != None:
-                break
-            jsonFile += nextline.decode('utf-8')
         return json.loads(jsonFile)
 
     def get_friendly_path_name(self, separator=" -> "):
@@ -101,8 +101,8 @@ class DirBrowseExtended:
 
 if __name__ == '__main__':
     db = DirBrowseExtended()
-    db.enter(1)
-    db.enter(1)
+    db.enter(2)
+    db.enter(3)
     print (str(db.dirs[2].items[0]))
     for item in db.dirs[2].items:
         print(item['title'].encode('utf-8'),

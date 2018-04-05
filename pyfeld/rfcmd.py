@@ -19,11 +19,11 @@ from requests.utils import quote
 
 from time import sleep
 
-from pyfeld.settings import Settings
-from pyfeld.upnpCommand import UpnpCommand
-from pyfeld.getRaumfeld import RaumfeldDeviceSettings
-from pyfeld.raumfeldHandler import RaumfeldHandler
-from pyfeld.didlInfo import DidlInfo
+from settings import Settings
+from upnpCommand import UpnpCommand
+from getRaumfeld import RaumfeldDeviceSettings
+from raumfeldHandler import RaumfeldHandler
+from didlInfo import DidlInfo
 
 
 
@@ -646,14 +646,21 @@ def single_device_command(ip, cmd):
 
 #TODO: this thing is ugly big and needs refactoring
 
+
 def run_main():
-    argv = list()
-    for arg in sys.argv:
-        argv.append(arg)
-    verbose = 0
-    if len(argv) < 2:
-        usage(argv)
+    if len(sys.argv) < 2:
+        usage(sys.argv)
         sys.exit(2)
+    result = run_command(sys.argv)
+    if result is not None:
+        sys.stdout.write(result)
+    sys.stdout.write('\n')
+
+def run_command(argList):
+    argv = list()
+    for i in argList:
+        argv.append(str(i))
+    verbose = 0
     target_device = None
     zoneIndex = -1
     mediaIndex = 0
@@ -662,7 +669,7 @@ def run_main():
     format = "plain"
     arg_pos = 1
     RfCmd.get_raumfeld_infrastructure()
-
+    print(argv)
     while argv[arg_pos].startswith('-'):
         if argv[arg_pos].startswith('--'):
             option = argv[arg_pos][2:]
@@ -1028,9 +1035,7 @@ def run_main():
         result = single_device_command(target_device, combined_args)
     else:
         usage(argv)
-    if result is not None:
-        sys.stdout.write(result)
-    sys.stdout.write('\n')
+    return result
 
 if __name__ == "__main__":
     run_main()

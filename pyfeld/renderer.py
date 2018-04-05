@@ -1,7 +1,7 @@
 
 from __future__ import unicode_literals
 
-from pyfeld.upnpService import UpnpService
+from upnpService import UpnpService
 
 class Renderer:
     def __init__(self, udn, name, location):

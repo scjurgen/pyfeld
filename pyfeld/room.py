@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import urllib3
 
-from pyfeld.upnpService import UpnpService
+from upnpService import UpnpService
 
 class Room:
     def __init__(self, udn, renderer_list, name, location):

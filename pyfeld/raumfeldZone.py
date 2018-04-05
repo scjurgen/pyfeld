@@ -4,10 +4,10 @@ import hashlib
 import threading
 from time import sleep
 
-from pyfeld.stateVariables import StateVariables
-from pyfeld.upnpCommand import UpnpCommand
+from stateVariables import StateVariables
+from upnpCommand import UpnpCommand
 import urllib3
-from pyfeld.didlInfo import DidlInfo
+from didlInfo import DidlInfo
 
 
 class RaumfeldZone:

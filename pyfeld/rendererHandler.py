@@ -1,5 +1,5 @@
 
-from pyfeld.upnpsoap import UpnpSoap
+from upnpsoap import UpnpSoap
 
 
 class RendererHandler:
