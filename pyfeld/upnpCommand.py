@@ -20,7 +20,7 @@ class UpnpCommand:
 
     def __init__(self, host):
         self.host = host
-        self.verbose = False
+        self.verbose = True
 
     @staticmethod
     def overwrite_user_agent(new_user_agent):
@@ -379,6 +379,8 @@ class UpnpCommand:
             return "error on level < 0"
         if path == '0/RadioTime':
             UpnpCommand.overwrite_user_agent('RaumfeldControl')
+        else:
+            UpnpCommand.overwrite_user_agent('RFControl')
         result = self.browsechildren(path, startIndex, requestCount)
         if result is None:
             result = self.browse(path, startIndex, requestCount)

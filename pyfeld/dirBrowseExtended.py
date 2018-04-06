@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 import json
-import subprocess
+
 
 from rfcmd import run_command
 
@@ -101,7 +101,7 @@ class DirBrowseExtended:
 
 if __name__ == '__main__':
     db = DirBrowseExtended()
-    db.enter(2)
+    db.enter(0)
     db.enter(3)
     print (str(db.dirs[2].items[0]))
     for item in db.dirs[2].items:

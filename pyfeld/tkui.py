@@ -24,10 +24,9 @@ except:
 from dirBrowseExtended import DirBrowseExtended
 from rfcmd import run_command
 
-def retrieve(cmd):
+def retrieve(cmdArgs):
     try:
-        cmd = "pyfeld " + cmd
-        lines = run_command(cmd.split(" "))
+        lines = run_command(cmdArgs)
     except Exception as e:
         return 0
     return lines
@@ -335,7 +334,7 @@ class RaumfeldBrowseContent(Frame):
         if item[0] == -1:
             return
         playitem = self.tree_index[item[0]]
-        res = retrieve(zone_context.get_zone_string() +'play "' + playitem[5] + '"')
+        res = retrieve(zone_context.get_zone_string() + 'play ' + playitem[5] + '')
         ZoneContextMenu()
 
     def _get_current_browse_list(self):
