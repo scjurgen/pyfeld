@@ -1,17 +1,7 @@
 #!/usr/bin/env python3
-"""
-TODO:
-show titles
-manage standby
-manage room volumes
-
-
-
-"""
 from __future__ import unicode_literals
 
 import json
-import subprocess
 
 try:
     from tkinter import *
@@ -22,17 +12,12 @@ except:
     exit(-1)
 
 from dirBrowseExtended import DirBrowseExtended
-from rfcmd import run_command
+from rfcmd import Rf
 
-def retrieve(cmdArgs):
-    try:
-        lines = run_command(cmdArgs)
-    except Exception as e:
-        return 0
-    return lines
 
 class ZoneContextMenu:
-    def __init__(self):
+    def __init__(self, rf):
+        self.rf = rf
         self.current_zone = 0
         self.zones = list()
         self.retrieve_zones()
@@ -48,11 +33,13 @@ class ZoneContextMenu:
         self.current_zone = index
 
     def get_zone_string(self):
-        return "--zone " + str(self.current_zone) + " "
+        return str(self.current_zone)
+
+    def get_zone(self):
+        return self.current_zone
 
     def retrieve_zones(self):
-        info = json.loads(retrieve("--discover --json info"))
-
+        info = self.rf.jsonInfo()
         for zone in info['zones']:
             self.zones.append(zone)
 
@@ -136,13 +123,7 @@ class RaumfeldRoomInfo(Frame):
 
     def _get_room_list(self):
 
-        info_str = retrieve("--discover --json info")
-        print("**** Loaded:\n",info_str,"\n**** end loaded")
-        try:
-            info = json.loads(info_str)
-        except:
-            print(info_str)
-            print("there was an error with json.loads")
+        info = rf.jsonInfo()
         i = 0
         browse_list = list()
         zone_index = 0
@@ -233,11 +214,7 @@ class CurrentZoneInfo(Frame):
         self.show_values()
 
     def show_values(self):
-        info_str = retrieve("--json info")
-        try:
-            info = json.loads(info_str)
-        except:
-            print("there was an error with json.loads")
+        info = rf.jsonInfo()
         zone_index = 0
         #name  vol balance eqbass egmid eqhigh
         for zone in info['zones']:
@@ -405,7 +382,7 @@ class RaumfeldDesktop(Frame):
 
     def __init__(self, isapp=True, name='raumfelddesktop', master=None):
         global zone_context
-        zone_context = ZoneContextMenu()
+        zone_context = ZoneContextMenu(rf)
         Frame.__init__(self, master=master, name=name)
         self.grid()
         ws = self.winfo_screenwidth()  # width of the screen
@@ -419,8 +396,8 @@ class RaumfeldDesktop(Frame):
         self.master.columnconfigure(0, weight=0)
         self.master.rowconfigure(1, weight=1)
         self.master.columnconfigure(1, weight=1)
-        self.info = json.loads(retrieve('--json --discover info'))
-        self.volume = retrieve(zone_context.get_zone_string() + "getvolume")
+        self.info = rf.jsonInfo()
+        self.volume = rf.getZoneVolume(zone_context.get_zone())
         self.master.title('Raumfeld browse songs')
         self.isapp = isapp
         self._create_panel(master)
@@ -477,4 +454,11 @@ def run_main():
     RaumfeldDesktop().mainloop()
 
 if __name__ == '__main__':
+    if len(sys.argv) == 2:
+        if sys.argv[1] == 'test':
+            rf = Rf()
+            rf.jsonInfo()
+            sys.exit(0)
+    rf = Rf()
+    rf.jsonInfo()
     RaumfeldDesktop().mainloop()

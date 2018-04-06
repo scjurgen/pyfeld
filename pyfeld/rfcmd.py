@@ -551,6 +551,34 @@ class RfCmd:
                 return ip_l.host
         return None
 
+class Rf:
+    def __init__(self):
+        self.zoneIndex = 0
+        self.mediaIndex = 0
+        self.zones = list()
+        RfCmd.discover()
+        self.uc = UpnpCommand(RfCmd.rfConfig['zones'][self.zoneIndex]['host'])
+        self.uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][self.mediaIndex]['location'])
+
+    def browse(self, path):
+        startIndex = 0
+        requestCount = 0
+        result = self.uc_media.browse_recursive_children(path, 0, format, startIndex, requestCount)
+        return result
+
+    def jsonInfo(self):
+        self.zones = list()
+        result = RfCmd.get_info(False, 'json')
+        info = json.loads(result[:-1])
+        for zone in info['zones']:
+            self.zones.append(zone)
+        return info
+
+    def getZoneVolume(self, zoneIndex):
+        uc = UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
+        result = uc.get_volume(format)
+        return result
+
 def usage(argv):
     print("Usage: " + argv[0] + " [OPTIONS] [COMMAND] {args}")
     print("Version: " + version)
