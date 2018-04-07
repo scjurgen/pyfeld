@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
 
-import json
+'''
+radiobox to select room
+info for all rooms
+save favorites
+set special parameters
+
+'''
 
 try:
     from tkinter import *
@@ -46,17 +51,19 @@ class ZoneContextMenu:
 
 class RoomContextMenu:
     def __init__(self, master, callback, zone_index, zone_udn, room_name, room_udn, is_active, is_unassigned):
+        self.cb = callback
+        self.master = master
         menu = Menu(master, tearoff=0, takefocus=1)
         if not is_active and not is_unassigned:
             menu.add_command(label="set zone #{0} as active".format(zone_index),
-                             command=lambda: self.select_zone(callback, int(zone_index)-1))
+                             command=lambda: self.select_zone(int(zone_index)-1))
             menu.add_separator()
         if not is_unassigned:
             menu.add_command(label="remove room {0} from zone".format(room_name),
-                             command=lambda: self.remove_from_zone(callback, room_udn))
+                             command=lambda: self.remove_from_zone(room_udn))
         else:
             menu.add_command(label="create zone for room {0}".format(room_name),
-                         command=lambda: self.create_zone(callback, room_udn))
+                         command=lambda: self.create_zone(room_udn))
 
         menu.add_separator()
         zone_udn = list()
@@ -65,28 +72,31 @@ class RoomContextMenu:
             if index != int(zone_index)-1:
                 zone_udn = zone['udn']
                 menu.add_command(label="move room {0} to zone #{1} {2}".format(room_name, index+1, zone['name']),
-                                 command=lambda room=room_udn, zone=zone_udn: self.move_zone(callback, room, zone))
+                                 command=lambda room=room_udn, zone=zone_udn: self.move_zone(room, zone))
 
         x = master.winfo_pointerx()+10
         y = master.winfo_pointery()+10
         menu.tk_popup(x, y)
 
-    def move_zone(self, callback, room_udn, zone_udn):
-        print(zone_udn)
-        retrieve("--zonebyudn " + zone_udn + " --udn addtozone " + room_udn)
-        callback()
 
-    def remove_from_zone(self, callback, room):
-        retrieve("--udn drop " + room)
-        callback()
+    def runCallback(self):
+        self.cb()
 
-    def select_zone(self, callback, zone_index):
+    def move_zone(self, room_udn, zone_udn):
+        rf.addRoomToZoneByUdn(room_udn, zone_udn)
+        self.master.after(2500, self.runCallback)
+
+    def remove_from_zone(self, room):
+        rf.dropZoneByUdn(room)
+        self.master.after(2500, self.runCallback)
+
+    def select_zone(self, zone_index):
         zone_context.set_active_zone(zone_index)
-        callback()
+        self.master.after(2500, self.runCallback)
 
-    def create_zone(self, callback, room):
-        retrieve("--udn createzone " + room)
-        callback()
+    def create_zone(self, room):
+        rf.createZoneByUdn(room)
+        self.master.after(2500, self.runCallback)
 
 
 class ItemContextMenu:
@@ -122,7 +132,6 @@ class RaumfeldRoomInfo(Frame):
         self._load_browse_data()
 
     def _get_room_list(self):
-
         info = rf.jsonInfo()
         i = 0
         browse_list = list()
@@ -369,8 +378,7 @@ class RaumfeldBrowseContent(Frame):
     def play_selection(self):
         item = self.tree.selection()
         play_item = self.tree_index[item[0]]
-        res = retrieve(zone_context.get_zone_string() + 'play "' + play_item[5] + '"')
-        print(str(res))
+        rf.play(zone_context.get_zone(), play_item[5])
 
 
 class RaumfeldDesktop(Frame):
@@ -409,18 +417,10 @@ class RaumfeldDesktop(Frame):
         self.browse_tree_frame.play_selection()
 
     def _volume_down_button_hit(self):
-        self.volume = retrieve(zone_context.get_zone_string() + "getvolume")
-        self.volume = int(self.volume) - 5
-        if self.volume < 0:
-            self.volume = 0
-        retrieve(zone_context.get_zone_string() + 'volume ' + str(self.volume))
+        rf.relativeVolume(zone_context.get_zone(), -5)
 
     def _volume_up_button_hit(self):
-        self.volume = retrieve(zone_context.get_zone_string() + "getvolume")
-        self.volume = int(self.volume) + 5
-        if self.volume > 100:
-            self.volume = 100
-        retrieve(zone_context.get_zone_string() + 'volume ' + str(self.volume))
+        rf.relativeVolume(zone_context.get_zone(), 5)
 
     def _stop_button_hit(self):
         retrieve(zone_context.get_zone_string() + 'stop')

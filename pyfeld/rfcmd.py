@@ -55,6 +55,7 @@ class RfCmd:
         except Exception as err:
             print("get_raumfeld_infrastructure: Exception: {0}".format(err))
             return None
+        return RfCmd.raumfeld_host_device
 
 
     '''
@@ -568,10 +569,12 @@ class Rf:
 
     def jsonInfo(self):
         self.zones = list()
+        RfCmd.discover()
         result = RfCmd.get_info(False, 'json')
         info = json.loads(result[:-1])
         for zone in info['zones']:
             self.zones.append(zone)
+        self.infrasStructure = RfCmd.get_raumfeld_infrastructure()
         return info
 
     def getZoneVolume(self, zoneIndex):
@@ -579,6 +582,44 @@ class Rf:
         result = uc.get_volume(format)
         return result
 
+    def setZoneVolume(self, zoneIndex, volume):
+        uc = UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
+        result = uc.set_volume(volume)
+        return result
+
+    def relativeVolume(self,zoneIndex, relativeChange):
+        val = int(self.getZoneVolume(zoneIndex))
+        val += int(relativeChange)
+        if val < 1:
+            val = 1
+        if val > 100:
+            val = 100
+        self.setZoneVolume(zoneIndex, val)
+
+    def addRoomToZoneByUdn(self, room_udn, zone_udn):
+        self.infrasStructure.add_rooms_to_zone(zone_udn, [room_udn, ])
+
+    def dropZoneByUdn(self, room):
+        self.infrasStructure.drop_room(room)
+
+    def createZoneByUdn(self, room):
+        rooms = set()
+        rooms.add(str(room))
+        self.infrasStructure.create_zone_with_rooms(rooms)
+
+    def play(self, zoneIndex, item):
+        udn = RfCmd.rfConfig['mediaserver'][self.mediaIndex]['udn']
+        transport_data = dict()
+        browseresult = self.uc_media.browsechildren(item)
+        if browseresult is None:
+            browseresult = self.uc_media.browse(item)
+            transport_data['CurrentURI'] = RfCmd.build_dlna_play_single(udn, "urn:upnp-org:serviceId:ContentDirectory", item)
+        else:
+            transport_data['CurrentURI'] = RfCmd.build_dlna_play_container(udn, "urn:upnp-org:serviceId:ContentDirectory",
+                                                                     item)
+        print("URI", item, transport_data['CurrentURI'])
+        transport_data['CurrentURIMetaData'] = '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:raumfeld="urn:schemas-raumfeld-com:meta-data/raumfeld"><container></container></DIDL-Lite>'
+        self.uc.set_transport_uri(transport_data)
 def usage(argv):
     print("Usage: " + argv[0] + " [OPTIONS] [COMMAND] {args}")
     print("Version: " + version)

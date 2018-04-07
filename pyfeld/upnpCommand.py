@@ -20,7 +20,7 @@ class UpnpCommand:
 
     def __init__(self, host):
         self.host = host
-        self.verbose = True
+        self.verbose = False
 
     @staticmethod
     def overwrite_user_agent(new_user_agent):
