@@ -552,6 +552,60 @@ class RfCmd:
                 return ip_l.host
         return None
 
+
+class Zone:
+    def __init__(self, zoneIndex):
+        self.uc = UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
+
+
+    def volume(self):
+        result = self.uc.get_volume(format)
+        return result
+
+    def setZoneVolume(self, volume):
+        result = self.uc.set_volume(volume)
+        return result
+
+    def relativeVolume(self, relativeChange):
+        val = int(self.volume())
+        val += int(relativeChange)
+        if val < 1:
+            val = 1
+        if val > 100:
+            val = 100
+        self.setZoneVolume(val)
+
+    def play(self, item):
+        mediaIndex = 0
+        udn = RfCmd.rfConfig['mediaserver'][0]['udn']
+        transport_data = dict()
+        uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][mediaIndex]['location'])
+        browseresult = uc_media.browsechildren(item)
+        if browseresult is None:
+            transport_data['CurrentURI'] = RfCmd.build_dlna_play_single(udn, "urn:upnp-org:serviceId:ContentDirectory", item)
+        else:
+            transport_data['CurrentURI'] = RfCmd.build_dlna_play_container(udn, "urn:upnp-org:serviceId:ContentDirectory", item)
+        print("URI", item, transport_data['CurrentURI'])
+        transport_data[
+            'CurrentURIMetaData'] = '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:raumfeld="urn:schemas-raumfeld-com:meta-data/raumfeld"><container></container></DIDL-Lite>'
+        self.uc.set_transport_uri(transport_data)
+
+    def stop(self):
+        self.uc.stop()
+
+    def pause(self):
+        self.uc.pause()
+
+    def resume(self):
+        self.uc.pause()
+
+    def next(self):
+        self.uc.next()
+
+    def prev(self):
+        self.uc.previous()
+
+
 class Rf:
     def __init__(self):
         self.zoneIndex = 0
@@ -560,6 +614,9 @@ class Rf:
         RfCmd.discover()
         self.uc = UpnpCommand(RfCmd.rfConfig['zones'][self.zoneIndex]['host'])
         self.uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][self.mediaIndex]['location'])
+
+    def zone(self, zoneIndex):
+        return Zone(zoneIndex)
 
     def browse(self, path):
         startIndex = 0
@@ -577,25 +634,6 @@ class Rf:
         self.infrasStructure = RfCmd.get_raumfeld_infrastructure()
         return info
 
-    def getZoneVolume(self, zoneIndex):
-        uc = UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
-        result = uc.get_volume(format)
-        return result
-
-    def setZoneVolume(self, zoneIndex, volume):
-        uc = UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
-        result = uc.set_volume(volume)
-        return result
-
-    def relativeVolume(self,zoneIndex, relativeChange):
-        val = int(self.getZoneVolume(zoneIndex))
-        val += int(relativeChange)
-        if val < 1:
-            val = 1
-        if val > 100:
-            val = 100
-        self.setZoneVolume(zoneIndex, val)
-
     def addRoomToZoneByUdn(self, room_udn, zone_udn):
         self.infrasStructure.add_rooms_to_zone(zone_udn, [room_udn, ])
 
@@ -607,19 +645,7 @@ class Rf:
         rooms.add(str(room))
         self.infrasStructure.create_zone_with_rooms(rooms)
 
-    def play(self, zoneIndex, item):
-        udn = RfCmd.rfConfig['mediaserver'][self.mediaIndex]['udn']
-        transport_data = dict()
-        browseresult = self.uc_media.browsechildren(item)
-        if browseresult is None:
-            browseresult = self.uc_media.browse(item)
-            transport_data['CurrentURI'] = RfCmd.build_dlna_play_single(udn, "urn:upnp-org:serviceId:ContentDirectory", item)
-        else:
-            transport_data['CurrentURI'] = RfCmd.build_dlna_play_container(udn, "urn:upnp-org:serviceId:ContentDirectory",
-                                                                     item)
-        print("URI", item, transport_data['CurrentURI'])
-        transport_data['CurrentURIMetaData'] = '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:raumfeld="urn:schemas-raumfeld-com:meta-data/raumfeld"><container></container></DIDL-Lite>'
-        self.uc.set_transport_uri(transport_data)
+
 def usage(argv):
     print("Usage: " + argv[0] + " [OPTIONS] [COMMAND] {args}")
     print("Version: " + version)

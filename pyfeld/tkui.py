@@ -378,7 +378,7 @@ class RaumfeldBrowseContent(Frame):
     def play_selection(self):
         item = self.tree.selection()
         play_item = self.tree_index[item[0]]
-        rf.play(zone_context.get_zone(), play_item[5])
+        rf.zone(zone_context.get_zone()).play(play_item[5])
 
 
 class RaumfeldDesktop(Frame):
@@ -405,7 +405,7 @@ class RaumfeldDesktop(Frame):
         self.master.rowconfigure(1, weight=1)
         self.master.columnconfigure(1, weight=1)
         self.info = rf.jsonInfo()
-        self.volume = rf.getZoneVolume(zone_context.get_zone())
+        self.volume = rf.zone(zone_context.get_zone()).volume()
         self.master.title('Raumfeld browse songs')
         self.isapp = isapp
         self._create_panel(master)
@@ -417,19 +417,19 @@ class RaumfeldDesktop(Frame):
         self.browse_tree_frame.play_selection()
 
     def _volume_down_button_hit(self):
-        rf.relativeVolume(zone_context.get_zone(), -5)
+        rf.zone(zone_context.get_zone()).relativeVolume(-5)
 
     def _volume_up_button_hit(self):
-        rf.relativeVolume(zone_context.get_zone(), 5)
+        rf.zone(zone_context.get_zone()).relativeVolume(+5)
 
     def _stop_button_hit(self):
-        retrieve(zone_context.get_zone_string() + 'stop')
+        rf.zone(zone_context.get_zone()).stop()
 
     def _prev_button_hit(self):
-        retrieve(zone_context.get_zone_string() + 'prev')
+        rf.zone(zone_context.get_zone()).previous()
 
     def _next_button_hit(self):
-        retrieve(zone_context.get_zone_string() + 'next')
+        rf.zone(zone_context.get_zone()).next()
 
     def _create_buttons(self, parent):
         f = Frame(parent)
