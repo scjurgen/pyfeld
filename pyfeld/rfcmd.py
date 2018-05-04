@@ -26,8 +26,8 @@ from pyfeld.raumfeldHandler import RaumfeldHandler
 from pyfeld.didlInfo import DidlInfo
 
 
-
 class InfoList:
+
     def __init__(self, sortItem, others):
         self.sortItem = sortItem
         self.others = others
@@ -43,7 +43,7 @@ class RfCmd:
     @staticmethod
     def get_raumfeld_infrastructure():
         try:
-            s = open(Settings.home_directory()+"/data.json", 'r').read()
+            s = open(Settings.home_directory() + "/data.json", 'r').read()
             RfCmd.rfConfig = json.loads(s)
             """sanitize"""
             for zone in RfCmd.rfConfig['zones']:
@@ -51,11 +51,11 @@ class RfCmd:
                     zone['rooms'] = None
                 if not 'udn' in zone:
                     zone['udn'] = None
-            RfCmd.raumfeld_host_device = RaumfeldDeviceSettings(RfCmd.rfConfig['host'])
+            RfCmd.raumfeld_host_device = RaumfeldDeviceSettings(
+                RfCmd.rfConfig['host'])
         except Exception as err:
             print("get_raumfeld_infrastructure: Exception: {0}".format(err))
             return None
-
 
     '''
     most stuff is already in the zone handler, this needs some tidy up
@@ -196,10 +196,12 @@ class RfCmd:
         for device in RfCmd.rfConfig['devices']:
             ip_l = urllib3.util.parse_url(device['location'])
             if ip_l.host == RfCmd.rfConfig['host']:
-                ip_list.append(InfoList(ip_l.host, str(RfCmd.map_ip_to_friendly_name(ip_l.host)) + " <host>"))
+                ip_list.append(InfoList(ip_l.host, str(
+                    RfCmd.map_ip_to_friendly_name(ip_l.host)) + " <host>"))
                 host_is_set = True
             else:
-                ip_list.append(InfoList(ip_l.host, str(RfCmd.map_ip_to_friendly_name(ip_l.host))))
+                ip_list.append(InfoList(ip_l.host, str(
+                    RfCmd.map_ip_to_friendly_name(ip_l.host))))
         if not host_is_set:
             ip_list.append(InfoList(RfCmd.rfConfig['host'], "<host>"))
         ip_list.sort(key=lambda x: x.sortItem, reverse=False)
@@ -242,7 +244,7 @@ class RfCmd:
                 if room is not None:
                     room_name = room['name']
                     if verbose:
-                        room_name += ":"+room['location']
+                        room_name += ":" + room['location']
                     room_list.append(room_name)
         room_list.sort()
 
@@ -283,7 +285,7 @@ class RfCmd:
         return result
 
     @staticmethod
-    #what should we do here i.e. pack vol, eq, balance?
+    # what should we do here i.e. pack vol, eq, balance?
     def get_room_info(uc, udn):
         result = uc.get_room_volume(udn)
 
@@ -303,7 +305,8 @@ class RfCmd:
                 result += '"",\n'
             result += '"TrackMetaData" : '
             if 'TrackMetaData' in results:
-                result += RfCmd.get_didl_extract(results['TrackMetaData'], format)
+                result += RfCmd.get_didl_extract(
+                    results['TrackMetaData'], format)
             result += '}'
             return result
         else:
@@ -320,7 +323,6 @@ class RfCmd:
             if 'TrackMetaData' in results:
                 result += RfCmd.get_didl_extract(results['TrackMetaData'])
             return result
-
 
     @staticmethod
     def get_info(verbose, format, zero_index=True):
@@ -346,7 +348,8 @@ class RfCmd:
             result = ""
             for media_server in RfCmd.rfConfig['mediaserver']:
                 if verbose >= 1:
-                    result += "Mediaserver #{0} : {1}\n".format(i, media_server['udn'])
+                    result += "Mediaserver #{0} : {1}\n".format(
+                        i, media_server['udn'])
                 else:
                     result += "Mediaserver #{0}\n".format(i)
                 i += 1
@@ -355,17 +358,21 @@ class RfCmd:
                 i += 1
             for zone in RfCmd.rfConfig['zones']:
                 if verbose == 2:
-                    result += "Zone #{0} : {1} : {2} -> {3}\n".format(i, zone['name'], str(zone['udn']), zone['host'])
+                    result += "Zone #{0} : {1} : {2} -> {3}\n".format(
+                        i, zone['name'], str(zone['udn']), zone['host'])
                 elif verbose == 1:
-                    result += "Zone #{0} : {1} : {2}\n".format(i, zone['name'], str(zone['udn']))
+                    result += "Zone #{0} : {1} : {2}\n".format(
+                        i, zone['name'], str(zone['udn']))
                 else:
                     result += "Zone #{0} : {1}\n".format(i, zone['name'])
                 if zone['rooms'] is not None:
                     for room in zone['rooms']:
                         if verbose == 2:
-                            result += "\tRoom '{0}' : {1} -> {2}\n".format(room['name'], room['udn'], room['location'])
+                            result += "\tRoom '{0}' : {1} -> {2}\n".format(
+                                room['name'], room['udn'], room['location'])
                         elif verbose == 1:
-                                result += "\tRoom '{0}' : {1}\n".format(room['name'], room['udn'])
+                            result += "\tRoom '{0}' : {1}\n".format(
+                                room['name'], room['udn'])
                         else:
                             result += "\tRoom '{0}'\n".format(room['name'])
                         for renderer in room['room_renderers']:
@@ -373,9 +380,11 @@ class RfCmd:
                                 result += "\t\tRenderer '{0}' : {1} -> {2}\n".format(renderer['name'], renderer['udn'],
                                                                                      renderer['location'])
                             elif verbose == 1:
-                                result += "\t\tRenderer '{0}' : {1}\n".format(renderer['name'], renderer['udn'])
+                                result += "\t\tRenderer '{0}' : {1}\n".format(
+                                    renderer['name'], renderer['udn'])
                             else:
-                                result += "\t\tRenderer '{0}'\n".format(renderer['name'])
+                                result += "\t\tRenderer '{0}'\n".format(
+                                    renderer['name'])
                     i += 1
         return result
 
@@ -389,14 +398,15 @@ class RfCmd:
                     maxsize = len(zone['name'])
         maxsize += 2
         result_list = list()
-        header_list = ["Zone", "Vol", "Track", "Length", "Pos", "Src", "BR", "Src", "Track title", "Track Info"]
+        header_list = ["Zone", "Vol", "Track", "Length", "Pos",
+                       "Src", "BR", "Src", "Track title", "Track Info"]
         result_list.append(header_list)
         for zone in RfCmd.rfConfig['zones']:
             if zone['rooms'] is not None:
                 single_result = list()
                 if zone['host'] == "None":
                     single_result.append(zone['name'])
-                    for i in range(len(header_list)-1):
+                    for i in range(len(header_list) - 1):
                         single_result.append("-")
                 else:
                     uc = UpnpCommand(zone['host'])
@@ -407,7 +417,8 @@ class RfCmd:
                     single_result.append(str(results['TrackDuration']))
                     single_result.append(str(results['AbsTime']))
                     if 'DIDL-Lite' in results['TrackMetaData']:
-                        didlinfo = DidlInfo(results['TrackMetaData'], True).get_items()
+                        didlinfo = DidlInfo(
+                            results['TrackMetaData'], True).get_items()
                         single_result.append(didlinfo['resSourceType'])
                         single_result.append(didlinfo['resBitrate'])
                         single_result.append(didlinfo['resSourceName'])
@@ -421,18 +432,20 @@ class RfCmd:
                     media_info = uc.get_media_info()
                     try:
                         if 'CurrentURIMetaData' in media_info:
-                            didlinfo = DidlInfo(media_info['CurrentURIMetaData']).get_items()
+                            didlinfo = DidlInfo(
+                                media_info['CurrentURIMetaData']).get_items()
                             media = didlinfo['title']
                             single_result.append(media)
                     except:
                         single_result.append("-")
                 result_list.append(single_result)
                 if len(zone['rooms']):
-                    header_list = ["Room/Renderer", "Vol", "Mute", "Balance", "Eq Low", "Eq Mid", "Eq High", "", "", ""]
+                    header_list = ["Room/Renderer", "Vol", "Mute",
+                                   "Balance", "Eq Low", "Eq Mid", "Eq High", "", "", ""]
                     result_list.append(header_list)
                     for room in zone['rooms']:
                         single_result = list()
-                        single_result.append("> "+room['name'])
+                        single_result.append("> " + room['name'])
                         udn = RfCmd.get_room_udn(room['name'])
                         location = RfCmd.get_device_location_by_udn(udn)
                         urc = UpnpCommand(location)
@@ -454,18 +467,20 @@ class RfCmd:
                         single_result.append("")
                         result_list.append(single_result)
             if format == 'json':
-                result = json.dumps(result_list, sort_keys=True, indent=2) + "\n"
+                result = json.dumps(
+                    result_list, sort_keys=True, indent=2) + "\n"
         else:
             t = Texttable(250)
             t.add_rows(result_list)
-            result = t.draw()+"\n"
+            result = t.draw() + "\n"
         return result
 
     @staticmethod
     def get_zone_info(format):
         result = ""
         if format == 'json':
-            result = json.dumps(RfCmd.rfConfig['zones'], sort_keys=True, indent=2) + "\n"
+            result = json.dumps(
+                RfCmd.rfConfig['zones'], sort_keys=True, indent=2) + "\n"
         else:
             for zone in RfCmd.rfConfig['zones']:
                 if zone['rooms'] is not None:
@@ -474,13 +489,12 @@ class RfCmd:
                         result += '\n'
         return result
 
-
     @staticmethod
     def timecode_to_seconds(tc):
         components = tc.split(':')
         return int(components[0]) * 3600 + int(components[1]) * 60 + int(components[2])
 
-    #unsused variables are used in the evil eval code
+    # unsused variables are used in the evil eval code
     @staticmethod
     def wait_operation(uc, condition):
         while True:
@@ -491,7 +505,7 @@ class RfCmd:
             try:
                 didlinfo = DidlInfo(results['TrackMetaData'])
                 items = didlinfo.get_items()
-                #print(items)
+                # print(items)
                 title = items['title']
                 artist = items['artist']
             except:
@@ -513,12 +527,11 @@ class RfCmd:
             sleep(1)
         return condition
 
-
     @staticmethod
     def fade_operation(uc, time, volume_start, volume_end):
         t = 0
         while t < time:
-            volume_now = volume_start+(volume_end-volume_start)*t/time
+            volume_now = volume_start + (volume_end - volume_start) * t / time
             uc.set_volume(volume_now)
             sleep(1)
             t += 1
@@ -550,6 +563,7 @@ class RfCmd:
             if str(RfCmd.map_ip_to_friendly_name(ip_l.host)) == name:
                 return ip_l.host
         return None
+
 
 def usage(argv):
     print("Usage: " + argv[0] + " [OPTIONS] [COMMAND] {args}")
@@ -587,7 +601,8 @@ def usage(argv):
     print("  roomseteq room L M H      Set equalizer device Low Mid High range is -1536 to 1536")
     print("  position                  Get position info of zone")
     print("  seek #                    Seek to a specific position")
-    print("  standby state {room(s)}   Set a room into standby state=on/off/auto")
+    print(
+        "  standby state {room(s)}   Set a room into standby state=on/off/auto")
     print("  roomgetsetting room value Get special setting of soundbar/deck:")
     print("                             Audio Mode: Stereo, Arena, Theater, Voice")
     print("                             Source Select: TV_ARC, OpticalIn, LineIn, Raumfeld")
@@ -609,10 +624,12 @@ def usage(argv):
     print("  playinfo                  Show playing info of renderers")
     # print("  examples                  Show commandline examples")
     print("#MACRO OPERATIONS")
-    print("  wait condition            wait for condition (expression) [volume, position, duration, title, artist] i.e. volume < 5 or position==120 ")
+    print(
+        "  wait condition            wait for condition (expression) [volume, position, duration, title, artist] i.e. volume < 5 or position==120 ")
     print("  fade time vols vole       fade volume from vols to vole in time seconds ")
     print("#ZONE MANAGEMENT (will automatically discover after operating)")
-    print("  createzone {room(s)}      create zone with list of rooms (space seperated)")
+    print(
+        "  createzone {room(s)}      create zone with list of rooms (space seperated)")
     print("  addtozone {room(s)}       add rooms to existing zone")
     print("  drop {room(s)}            drop rooms from it's zone")
     print("#SSH ")
@@ -624,7 +641,8 @@ scpcmd = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
 
 def retrieve(cmd):
     try:
-        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(
+            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except Exception as e:
         return 0
     lines = ""
@@ -644,9 +662,170 @@ def single_device_command(ip, cmd):
     return lines
 
 
-#TODO: this thing is ugly big and needs refactoring
+def parse_options():
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-j', '--json', required=False,
+                        help='Use json as output format (default is plain text)', action='store_true')
+    parser.add_argument('-u', '--udn', type=str, required=False,
+                        help='Specify room by udn rather by name')
+    parser.add_argument('-d', '--discover', type=str, required=False,
+                        help='Discover again (will be fast if host didn\'t change)')
+    parser.add_argument('--zonebyudn', type=int,
+                        required=False, help='Specify zone by udn')
+    parser.add_argument('-z', '--zone', type=int, required=False,
+                        help='Specify zone index (use info to get a list), default 0 = first')
+    parser.add_argument('-r', '--zonewithroomname', type=str,
+                        required=False, help='Specify zone index by using room name')
+    parser.add_argument('-s', '--renderer', type=str, required=False,
+                        help='Specify renderer by using renderer name')
+    parser.add_argument('-e', '--device', type=str, required=False,
+                        help='Specify device by name, special case is <host> as name')
+    parser.add_argument('-m', '--mediaserver', type=int, required=False,
+                        help='Specify media server, default 0 = first')
+    parser.add_argument('-v', '--verbose', required=False,
+                        help='Increase verbosity', action='store_true')
+    parser.add_argument('-vv', '--veryverbose', required=False,
+                        help='Further increase verbosity', action='store_true')
+
+    command_subparser = parser.add_subparsers(dest='command', title='COMMANDS')
+
+    command = command_subparser.add_parser(
+        'browse', help='Browse for media (append /* for recursive)')
+    command.add_argument('browse-path', type=str)
+
+    command = command_subparser.add_parser(
+        'play', help='Play item in zone i.e. play \'0/My Music/Albums/TheAlbumTitle\'')
+    command.add_argument('play-item', type=str)
+
+    command = command_subparser.add_parser(
+        'playuri', help='Play external URI in zone i.e. play \'http://localhost/your.mp3\'')
+    command.add_argument('playuri-uri', type=str)
+
+    command_subparser.add_parser('stop', help='Stop current item in zone')
+    command_subparser.add_parser('previous', help='Play previous item in zone')
+    command_subparser.add_parser('next', help='Pause next item in zone')
+    command_subparser.add_parser('resume', help='Resume current item in zone')
+    command_subparser.add_parser('pause', help='Pause current item in zone')
+
+    command = command_subparser.add_parser('volume', help='Set volume of zone')
+    command.add_argument('volume-value', type=int)
+
+    command_subparser.add_parser('getvolume', help='Get volume of zone')
+
+    command = command_subparser.add_parser(
+        'roomvolume', help='Set volume of room')
+    command.add_argument('roomvolume-room', type=str)
+    command.add_argument('roomvolume-value', type=int)
+
+    command = command_subparser.add_parser(
+        'roomgetvolume', help='Get volume of room')
+    command.add_argument('roomgetvolume-room', type=str)
+
+    command = command_subparser.add_parser(
+        'roomgeteq', help='Get equalizer settings of device')
+    command.add_argument('roomgeteq-room', type=str)
+
+    command = command_subparser.add_parser('mute', help='Set mute state')
+    command.add_argument('mute-state', type=int)
+
+    command_subparser.add_parser('getmute', help='Get mute state of zone')
+
+    command = command_subparser.add_parser('roommute', help='Mute room')
+    command.add_argument('roommute-room', type=str)
+    command.add_argument('roommute-state', type=int)
+
+    command = command_subparser.add_parser(
+        'roomgetmute', help='Get mute state of room')
+    command.add_argument('roomgetmute-room', type=str)
+
+    command = command_subparser.add_parser(
+        'roomgeteq', help='Get equalizer settings of device')
+    command.add_argument('roomgeteq-room', type=str)
+
+    command = command_subparser.add_parser(
+        'roomseteq', help='Set equalizer device Low Mid High range is -1536 to 1536')
+    command.add_argument('roomseteq-room', type=str)
+    command.add_argument('roomseteq-L', type=int)
+    command.add_argument('roomseteq-M', type=int)
+    command.add_argument('roomseteq-H', type=int)
+
+    command_subparser.add_parser('position', help='Get position info of zone')
+
+    command = command_subparser.add_parser(
+        'seek', help='Seek to a specific position')
+    command.add_argument('seek-position', type=int)
+
+    command = command_subparser.add_parser(
+        'standby', help='Set a room into standby state=on/off/auto')
+    command.add_argument('standby-state', type=str)
+    command.add_argument('standby-rooms', type=str)
+
+    command = command_subparser.add_parser(
+        'roomgetsetting', help='Get special setting of soundbar/deck (Audio Mode: Stereo, Arena, Theater, Voice; Source Select: TV_ARC, OpticalIn, LineIn, Raumfeld; TV Source Select, TV_ARC, OpticalIn, LineIn; Subwoofer Playback Volume: -10 ... 10; Subwoofer X-Over: 80Hz, 100Hz, 120Hz, 140Hz; Night Mode Switch)')
+    command.add_argument('roomgetsetting-room', type=str)
+    command.add_argument('roomgetsetting-value', type=str)
+
+    command = command_subparser.add_parser(
+        'roomsetsetting', help='Set special setting of soundbar/deck')
+    command.add_argument('roomsetsetting-room', type=str)
+    command.add_argument('roomsetsetting-setting', type=str)
+    command.add_argument('roomsetsetting-value', type=int)
+
+    command_subparser.add_parser('host', help='print host ip')
+    command_subparser.add_parser(
+        'rooms', help='Show list of rooms ordererd alphabetically')
+    command_subparser.add_parser(
+        'deviceips', help='Show list of devices (rooms/host) ip address (verbose shows name)')
+    command_subparser.add_parser(
+        'renderer', help='Show list of renderer names (verbose shows ip)')
+    command_subparser.add_parser(
+        'unassignedrooms', help='Show list of unassigned rooms')
+    command_subparser.add_parser('zoneinfo', help='Show info on zone')
+    command_subparser.add_parser(
+        'zones', help='Show list of zones, unassigned room is skipped')
+    command_subparser.add_parser(
+        'info', help='Show list of zones, rooms and renderers')
+    command_subparser.add_parser(
+        'status', help='Show list of status of renderers')
+    command_subparser.add_parser(
+        'playinfo', help='Show playing info of renderers')
+
+    command = command_subparser.add_parser(
+        'wait', help='wait for condition (expression) [volume, position, duration, title, artist] i.e. volume < 5 or position==120')
+    command.add_argument('wait-condition', type=str)
+
+    command = command_subparser.add_parser(
+        'fade', help='fade volume in time seconds from vols to vole')
+    command.add_argument('fade-time', type=int)
+    command.add_argument('fade-vols', type=int)
+    command.add_argument('fade-vole', type=int)
+
+    command = command_subparser.add_parser(
+        'createzone', help='create zone with list of rooms (semicolon seperated)')
+    command.add_argument('createzone-roomlist', type=str)
+
+    command = command_subparser.add_parser(
+        'addtozone', help='add rooms to existing zone')
+    command.add_argument('addtozone-roomlist', type=str)
+
+    command = command_subparser.add_parser(
+        'drop', help='drop rooms from its zone')
+    command.add_argument('drop-roomlist', type=str)
+
+    command = command_subparser.add_parser(
+        'ssh', help='send command to given device, device is determined by --renderer or --device')
+    command.add_argument('command', type=str)
+
+    return parser.parse_args()
+
 
 def run_main():
+    print(parse_options())
+
+    return
+
     argv = list()
     for arg in sys.argv:
         argv.append(arg)
@@ -703,7 +882,8 @@ def run_main():
             for index, zone in enumerate(RfCmd.rfConfig['zones']):
                 if argv[arg_pos] == zone['udn']:
                     zoneIndex = index
-                    uc = UpnpCommand(RfCmd.rfConfig['zones'][zoneIndex]['host'])
+                    uc = UpnpCommand(RfCmd.rfConfig['zones'][
+                                     zoneIndex]['host'])
                     found = True
             if not found:
                 print("Zoneudn {0} not found".format(argv[arg_pos]))
@@ -720,7 +900,8 @@ def run_main():
                 print("Room found in zone ", zoneIndex)
             if zoneIndex == -1:
                 print("ERROR: room with name '{0}' not found".format(roomName))
-                print("Available rooms are to be found here:\n" + RfCmd.get_info(verbose))
+                print("Available rooms are to be found here:\n" +
+                      RfCmd.get_info(verbose))
                 exit(-1)
             if RfCmd.is_unassigned_room(roomName):
                 print('error: room is unassigned: ' + roomName)
@@ -739,7 +920,8 @@ def run_main():
         zoneIndex = 0
         uc = UpnpCommand(RfCmd.rfConfig['zones'][0]['host'])
 
-    uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][mediaIndex]['location'])
+    uc_media = UpnpCommand(RfCmd.rfConfig['mediaserver'][
+                           mediaIndex]['location'])
     operation = argv[arg_pos]
     arg_pos += 1
     result = None
@@ -750,10 +932,11 @@ def run_main():
         browseresult = uc_media.browsechildren(argv[arg_pos])
         if browseresult is None:
             browseresult = uc_media.browse(argv[arg_pos])
-            transport_data['CurrentURI'] = RfCmd.build_dlna_play_single(udn, "urn:upnp-org:serviceId:ContentDirectory", argv[arg_pos])
+            transport_data['CurrentURI'] = RfCmd.build_dlna_play_single(
+                udn, "urn:upnp-org:serviceId:ContentDirectory", argv[arg_pos])
         else:
             transport_data['CurrentURI'] = RfCmd.build_dlna_play_container(udn, "urn:upnp-org:serviceId:ContentDirectory",
-                                                                     argv[arg_pos])
+                                                                           argv[arg_pos])
         print("URI", argv[arg_pos], transport_data['CurrentURI'])
         transport_data['CurrentURIMetaData'] = '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:raumfeld="urn:schemas-raumfeld-com:meta-data/raumfeld"><container></container></DIDL-Lite>'
         uc.set_transport_uri(transport_data)
@@ -772,7 +955,7 @@ def run_main():
             lang="en"
             >
                 <item parentID="RadioTeufel" id="RadioTeufel/1" restricted="1">
-                <res bitrate="192" protocolInfo="http-get:*:audio/x-mpegurl:*">'''+transport_data['CurrentURI']+'''</res>
+                <res bitrate="192" protocolInfo="http-get:*:audio/x-mpegurl:*">''' + transport_data['CurrentURI'] + '''</res>
                 <raumfeld:name>radio</raumfeld:name>
                 <upnp:class>ContentSection</upnp:class>
                 <raumfeld:section>RadioTime</raumfeld:section>
@@ -851,7 +1034,7 @@ def run_main():
         moniker = argv[arg_pos]
         if moniker == 'all':
             result = ""
-            for i in ['Audio Mode', 'Source Select', 'TV Source Select','Subwoofer Playback Volume','Subwoofer X-Over','Night Mode Switch']:
+            for i in ['Audio Mode', 'Source Select', 'TV Source Select', 'Subwoofer Playback Volume', 'Subwoofer X-Over', 'Night Mode Switch']:
                 result += i + ": " + urc.get_setting(i, format) + "\n"
         else:
             result = urc.get_setting(moniker, format)
@@ -863,7 +1046,7 @@ def run_main():
         location = RfCmd.get_device_location_by_udn(udn)
         urc = UpnpCommand(location)
         arg_pos += 1
-        result = urc.set_setting(argv[arg_pos], argv[arg_pos+1])
+        result = urc.set_setting(argv[arg_pos], argv[arg_pos + 1])
 
     elif operation == 'roomgetmute':
         if device_format == 'udn':
@@ -893,7 +1076,8 @@ def run_main():
             udn = RfCmd.get_room_udn(argv[arg_pos])
         location = RfCmd.get_device_location_by_udn(udn)
         urc = UpnpCommand(location)
-        result = urc.set_filter(argv[arg_pos + 1], argv[arg_pos + 2], argv[arg_pos + 3])
+        result = urc.set_filter(
+            argv[arg_pos + 1], argv[arg_pos + 2], argv[arg_pos + 3])
     elif operation == 'roomgetbalance':
         if device_format == 'udn':
             udn = argv[arg_pos]
@@ -909,14 +1093,14 @@ def run_main():
             udn = RfCmd.get_room_udn(argv[arg_pos])
         location = RfCmd.get_device_location_by_udn(udn)
         urc = UpnpCommand(location)
-        result = urc.set_balance(argv[arg_pos+1])
+        result = urc.set_balance(argv[arg_pos + 1])
     elif operation == 'standby':
         state = argv[arg_pos]
         arg_pos += 1
         while arg_pos < len(argv):
             udn = RfCmd.get_room_udn(argv[arg_pos])
             if udn is None:
-                print("unknown room "+argv[arg_pos])
+                print("unknown room " + argv[arg_pos])
             else:
                 RfCmd.raumfeld_host_device.set_room_standby(str(udn), state)
             arg_pos += 1
@@ -933,12 +1117,13 @@ def run_main():
                 result += str(results['AbsTime'])
             result += '\n'
     elif operation == 'seek':
-        #check argv[arg_pos] if contains :
+        # check argv[arg_pos] if contains :
         result = uc.seek(argv[arg_pos])
     elif operation == 'wait':
         result = RfCmd.wait_operation(uc, argv[arg_pos])
     elif operation == 'fade':
-        result = RfCmd.fade_operation(uc, int(argv[arg_pos]), int(argv[arg_pos+1]), int(argv[arg_pos+2]))
+        result = RfCmd.fade_operation(uc, int(argv[arg_pos]), int(
+            argv[arg_pos + 1]), int(argv[arg_pos + 2]))
     elif operation == 'createzone':
         rooms = set()
         result = "zone creation adding rooms:\n"
@@ -982,19 +1167,21 @@ def run_main():
     elif operation == 'browse':
         startIndex = 0
         requestCount = 0
-        if len(sys.argv) > arg_pos+2:
-            startIndex =  int(argv[arg_pos+1])
-            requestCount = int(argv[arg_pos+2])
+        if len(sys.argv) > arg_pos + 2:
+            startIndex = int(argv[arg_pos + 1])
+            requestCount = int(argv[arg_pos + 2])
             print(startIndex, requestCount)
         if argv[arg_pos].endswith('/*'):
-            result = uc_media.browse_recursive_children(argv[arg_pos][:-2], 3, format, startIndex, requestCount)
+            result = uc_media.browse_recursive_children(
+                argv[arg_pos][:-2], 3, format, startIndex, requestCount)
         else:
-            result = uc_media.browse_recursive_children(argv[arg_pos], 0, format, startIndex, requestCount)
+            result = uc_media.browse_recursive_children(
+                argv[arg_pos], 0, format, startIndex, requestCount)
     elif operation == 'browseinfo':
         results = uc_media.browse(argv[arg_pos])
         result = RfCmd.get_didl_extract(results['Result'], format)
     elif operation == 'search':
-        result = uc_media.search(argv[arg_pos], argv[arg_pos+1], format)
+        result = uc_media.search(argv[arg_pos], argv[arg_pos + 1], format)
     elif operation == 'rooms':
         result = RfCmd.get_rooms(verbose, format)
         result = result[:-1]
