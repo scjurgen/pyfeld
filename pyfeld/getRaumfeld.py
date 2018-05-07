@@ -134,7 +134,6 @@ class RaumfeldDeviceSettings:
             s.connect(("8.8.8.8", 80))
             res = s.getsockname()[0]
             RaumfeldDeviceSettings.local_ip = res
-            print("Local IP address:" + res)
             return res
         except Exception as err:
             print("Exception get_local_ip_address: {0}".format(err))

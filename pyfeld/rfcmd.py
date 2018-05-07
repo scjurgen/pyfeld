@@ -662,7 +662,6 @@ def run_main():
     format = "plain"
     arg_pos = 1
     RfCmd.get_raumfeld_infrastructure()
-
     while argv[arg_pos].startswith('-'):
         if argv[arg_pos].startswith('--'):
             option = argv[arg_pos][2:]

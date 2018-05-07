@@ -10,7 +10,7 @@ from xml.dom import minidom
 import hashlib
 from pyfeld.renderer import Renderer
 
-from pyfeld.discoverByHttp import DiscoverByHttp
+from pyfeld.discoverHost import DiscoverHost
 from pyfeld.errorPrint import err_print
 from pyfeld.getRaumfeld import RaumfeldDeviceSettings, HostDevice
 from pyfeld.raumfeldZone import RaumfeldZone
@@ -400,11 +400,14 @@ class RaumfeldHandler:
 
 
     def nmap_fallback(self):
-        db = DiscoverByHttp()
-        self.found_protocol_ip = db.found_IP()
+        db = DiscoverHost()
+
+        self.found_protocol_ip = DiscoverHost().discoverBySsdp()
         if self.found_protocol_ip is None:
-            print("No host found: switched on? available in raumfeld app? Crashed?")
-            exit(1)
+            self.found_protocol_ip = DiscoverHost().discoverByHttp()
+            if self.found_protocol_ip is None:
+                print("No host found: switched on? available in raumfeld app? Crashed?")
+                exit(1)
         self.reprocess()
         return None
 
