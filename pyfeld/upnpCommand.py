@@ -6,7 +6,7 @@ from time import time
 
 import requests
 import sys
-import cgi 
+import html 
 
 from xml.dom import minidom
 
@@ -162,7 +162,7 @@ class UpnpCommand:
                     add_uri = data['TrackURI']
 
         send_data += "<CurrentURI><![CDATA[" + add_uri + "]]></CurrentURI>"
-        send_data += "<CurrentURIMetaData>" + cgi.escape(data['CurrentURIMetaData']) + "</CurrentURIMetaData>"
+        send_data += "<CurrentURIMetaData>" + html.escape(data['CurrentURIMetaData']) + "</CurrentURIMetaData>"
         # + cgi.escape(data['CurrentURIMetaData']) +
         print(send_data)
         xml_root = self.host_send_transport("SetAVTransportURI", send_data)
