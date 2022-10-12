@@ -43,7 +43,7 @@ Same as bevor but print:
 
 Set volume of kitchen:
     
-    ``pyfeld roomvolume 20 kitchen``
+    ``pyfeld roomvolume kitchen 20``
 
 Set volume on a zone:
     
